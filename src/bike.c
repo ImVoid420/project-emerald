@@ -1043,6 +1043,10 @@ static void Bike_SetBikeStill(void)
 
 s16 GetPlayerSpeed(void)
 {
+    // Se premi A, restituisci 0 (che è la velocità dello Sneaking)
+    if (gMain.heldKeys & A_BUTTON)
+        return 0;
+
     // because the player pressed a direction, it won't ever return a speed of 0 since this function returns the player's current speed.
     s16 machSpeeds[3];
 
