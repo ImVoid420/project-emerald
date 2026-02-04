@@ -4540,7 +4540,19 @@ static u32 GetPokedexMonPersonality(u16 species)
 static u16 CreateMonSpriteFromNationalDexNumberHGSS(u16 nationalNum, s16 x, s16 y, u16 paletteSlot)
 {
     u32 species = NationalPokedexNumToSpeciesHGSS(nationalNum);
-    return CreateMonPicSprite(species, FALSE, GetPokedexMonPersonality(species), TRUE, x, y, paletteSlot, TAG_NONE);
+    
+    // 1. Creiamo lo sprite normalmente e salviamo il suo ID
+    u16 spriteId = CreateMonPicSprite(species, FALSE, GetPokedexMonPersonality(species), TRUE, x, y, paletteSlot, TAG_NONE);
+
+    // 2. Controlliamo se il Pokémon è stato VISTO
+    if (!GetSetPokedexFlag(nationalNum, FLAG_GET_SEEN))
+    {
+        // 3. Se NON è stato visto, carichiamo la palette della silhouette
+        // Andiamo a sovrascrivere esattamente lo slot palette assegnato a questo sprite
+        LoadPalette(sSizeScreenSilhouette_Pal, OBJ_PLTT_ID(gSprites[spriteId].oam.paletteNum), PLTT_SIZE_4BPP);
+    }
+
+    return spriteId;
 }
 
 static u16 GetPokemonScaleFromNationalDexNumber(u16 nationalNum)
