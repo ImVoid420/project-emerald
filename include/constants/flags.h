@@ -1539,9 +1539,19 @@
 
 #define FLAG_SYS_DEXNAV_GET                         (SYSTEM_FLAGS + 0xA0) // Ottenimento DexNav
 #define FLAG_SYS_DETECTOR_MODE                      (SYSTEM_FLAGS + 0xA1) // Fa visualizzare i selvatici in overworld
-#define FLAG_UNUSED_0x902                           (SYSTEM_FLAGS + 0xA2) // Unused Flag
-#define FLAG_UNUSED_0x903                           (SYSTEM_FLAGS + 0xA3) // Unused Flag
-#define FLAG_UNUSED_0x904                           (SYSTEM_FLAGS + 0xA4) // Unused Flag
+
+/* RICERCA STRUMENTI ORAS*/
+
+#define FLAG_ORAS_DOWSING_MACHINE                   (SYSTEM_FLAGS + 0xA2) // Cambia il ricerca strumenti di smeraldo con quello di ORAS
+
+/* CONDIVIDI EXP 6 GEN */
+
+#define FLAG_GEN6_EXP_SHARE                           (SYSTEM_FLAGS + 0xA3) // Condividi Esp stile Gen 6
+
+/* VOLO ANCHE DA MAPPA E POKENAV */
+
+#define FLAG_SYS_POKE_RIDER                           (SYSTEM_FLAGS + 0xA4) // Abilita il volo rapido dalla mappa e dal pokenav
+
 #define FLAG_UNUSED_0x905                           (SYSTEM_FLAGS + 0xA5) // Unused Flag
 #define FLAG_UNUSED_0x906                           (SYSTEM_FLAGS + 0xA6) // Unused Flag
 #define FLAG_UNUSED_0x907                           (SYSTEM_FLAGS + 0xA7) // Unused Flag
