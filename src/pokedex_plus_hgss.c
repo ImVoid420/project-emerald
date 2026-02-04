@@ -3060,11 +3060,10 @@ static u16 GetPokemonSpriteToDisplay(u16 species)
 {
     if (species >= NATIONAL_DEX_COUNT || sPokedexView->pokedexList[species].dexNum == 0xFFFF)
         return 0xFFFF;
-    else if (sPokedexView->pokedexList[species].seen)
-        return sPokedexView->pokedexList[species].dexNum;
     else
-        return 0;
+        return sPokedexView->pokedexList[species].dexNum;
 }
+
 
 static u32 CreatePokedexMonSprite(u16 num, s16 x, s16 y)
 {
@@ -6562,7 +6561,18 @@ static void PrintEvolutionTargetSpeciesAndMethod(u8 taskId, u16 species, u8 dept
                 break;
             if (alreadyPrintedIcons[j] == SPECIES_NONE)
             {
-                HandleTargetSpeciesPrintIcon(taskId, targetSpecies, *icon_depth_i, times);
+                // --- MODIFICA QUI ---
+                u16 speciesToPrintIcon = targetSpecies;
+                
+                // Se dobbiamo nascondere i nomi non visti, nascondiamo anche l'icona
+                if (HGSS_HIDE_UNSEEN_EVOLUTION_NAMES && !GetSetPokedexFlag(SpeciesToNationalPokedexNum(targetSpecies), FLAG_GET_SEEN))
+                {
+                    speciesToPrintIcon = SPECIES_NONE; // Visualizzerà un'icona vuota o un punto di domanda
+                }
+
+                HandleTargetSpeciesPrintIcon(taskId, speciesToPrintIcon, *icon_depth_i, times);
+                // ----------------------
+                
                 alreadyPrintedIcons[j] = targetSpecies;
                 (*icon_depth_i)++;
                 break;
