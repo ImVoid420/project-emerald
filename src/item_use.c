@@ -1618,4 +1618,49 @@ void ItemUseOutOfBattle_TownMap(u8 taskId)
     }
 }
 
+
+// 1. DICHIARAZIONI (Mettile subito sopra la funzione ItemUseOnFieldCB_PokeVial)
+extern const u8 EventScript_PokeVial[]; 
+static void ItemUseOnFieldCB_PokeVial(u8 taskId, void (*callback)(u8));
+
+// --- PROTOTIPO AGGIORNATO ---
+static void ItemUseOnFieldCB_PokeVial(u8 taskId, void (*callback)(u8));
+
+// --- LOGICA DI USCITA ---
+static void ItemUseOnFieldCB_PokeVial(u8 taskId, void (*callback)(u8))
+{
+    if (EventScript_PokeVial != NULL)
+        ScriptContext_SetupScript(EventScript_PokeVial);
+    
+    // Nella expansion si usa spesso il callback passato per pulire
+    if (callback != NULL)
+        callback(taskId);
+
+    DestroyTask(taskId);
+}
+
+// --- FUNZIONE PRINCIPALE ---
+void ItemUseOutOfBattle_PokeVial(u8 taskId)
+{
+    u8 i;
+
+    for (i = 0; i < PARTY_SIZE; i++)
+    {
+        if (GetMonData(&gPlayerParty[i], MON_DATA_SPECIES) != SPECIES_NONE 
+            && !GetMonData(&gPlayerParty[i], MON_DATA_IS_EGG))
+        {
+            u16 maxHP = GetMonData(&gPlayerParty[i], MON_DATA_MAX_HP);
+            SetMonData(&gPlayerParty[i], MON_DATA_HP, &maxHP);
+            u32 status = 0;
+            SetMonData(&gPlayerParty[i], MON_DATA_STATUS, &status);
+        }
+    }
+
+    PlaySE(SE_USE_ITEM); 
+
+    // Ora il puntatore sarà compatibile
+    gItemUseCB = ItemUseOnFieldCB_PokeVial;
+    SetUpItemUseCallback(taskId);
+}
+
 #undef tUsingRegisteredKeyItem

@@ -844,28 +844,36 @@ static void PlayerNotOnBikeMoving(u8 direction, u16 heldKeys)
         return;
     }
 
-    if (!(gPlayerAvatar.flags & PLAYER_AVATAR_FLAG_UNDERWATER)
-     && (heldKeys & B_BUTTON)
-     && FlagGet(FLAG_SYS_B_DASH)
-     && IsRunningDisallowed(gObjectEvents[gPlayerAvatar.objectEventId].currentMetatileBehavior) == 0
-     && !FollowerNPCComingThroughDoor()
-     && (I_ORAS_DOWSING_FLAG == 0 || (I_ORAS_DOWSING_FLAG != 0 && !FlagGet(I_ORAS_DOWSING_FLAG))))
+   if (!(gPlayerAvatar.flags & PLAYER_AVATAR_FLAG_UNDERWATER)
+        && FlagGet(FLAG_SYS_B_DASH)
+        && IsRunningDisallowed(gObjectEvents[gPlayerAvatar.objectEventId].currentMetatileBehavior) == 0
+        && !FollowerNPCComingThroughDoor()
+        && (I_ORAS_DOWSING_FLAG == 0 || (I_ORAS_DOWSING_FLAG != 0 && !FlagGet(I_ORAS_DOWSING_FLAG))))
     {
-        if (ObjectMovingOnRockStairs(&gObjectEvents[gPlayerAvatar.objectEventId], direction))
-            PlayerRunSlow(direction);
-        else
-            PlayerRun(direction);
+        // Se NON stiamo premendo il tasto B, corri (Autorun)
+        if (!(heldKeys & B_BUTTON))
+        {
+            if (ObjectMovingOnRockStairs(&gObjectEvents[gPlayerAvatar.objectEventId], direction))
+                PlayerRunSlow(direction);
+            else
+                PlayerRun(direction);
 
-        gPlayerAvatar.flags |= PLAYER_AVATAR_FLAG_DASH;
-        return;
+            gPlayerAvatar.flags |= PLAYER_AVATAR_FLAG_DASH;
+            return;
+        }
+        // Se premiamo B, usciamo da questo if e finiremo nell'else in fondo (camminata)
     }
-    else if (FlagGet(DN_FLAG_SEARCHING) && (heldKeys & A_BUTTON))
+
+    if (FlagGet(DN_FLAG_SEARCHING) && (heldKeys & A_BUTTON))
     {
         gPlayerAvatar.creeping = TRUE;
+        gPlayerAvatar.flags &= ~PLAYER_AVATAR_FLAG_DASH;
         PlayerWalkSlow(direction);
     }
     else
     {
+        // Qui gestiamo la camminata normale (se B è premuto o se non abbiamo le scarpe)
+        gPlayerAvatar.flags &= ~PLAYER_AVATAR_FLAG_DASH;
         if (ObjectMovingOnRockStairs(&gObjectEvents[gPlayerAvatar.objectEventId], direction))
             PlayerWalkSlowStairs(direction);
         else

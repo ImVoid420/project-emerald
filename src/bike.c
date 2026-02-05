@@ -9,6 +9,7 @@
 #include "overworld.h"
 #include "sound.h"
 #include "constants/songs.h"
+#include "event_data.h"
 
 // this file's functions
 static void MovePlayerOnMachBike(u8, u16, u16);
@@ -1043,20 +1044,25 @@ static void Bike_SetBikeStill(void)
 
 s16 GetPlayerSpeed(void)
 {
-    // Se premi A, restituisci 0 (che è la velocità dello Sneaking)
-    if ((gMain.heldKeys & A_BUTTON) && (gPlayerAvatar.tileTransitionState != T_NOT_MOVING))
-        return 0;
-
-    // because the player pressed a direction, it won't ever return a speed of 0 since this function returns the player's current speed.
     s16 machSpeeds[3];
-
     memcpy(machSpeeds, sMachBikeSpeeds, sizeof(machSpeeds));
 
     if (gPlayerAvatar.flags & PLAYER_AVATAR_FLAG_MACH_BIKE)
         return machSpeeds[gPlayerAvatar.bikeFrameCounter];
     else if (gPlayerAvatar.flags & PLAYER_AVATAR_FLAG_ACRO_BIKE)
         return PLAYER_SPEED_FASTER;
-    else if (gPlayerAvatar.flags & (PLAYER_AVATAR_FLAG_SURFING | PLAYER_AVATAR_FLAG_DASH))
+    else if (gPlayerAvatar.flags & PLAYER_AVATAR_FLAG_SURFING)
+        return PLAYER_SPEED_FAST;
+    // --- Inizio Modifica Autorun ---
+    else if (FlagGet(FLAG_SYS_B_DASH)) // Se hai le scarpe
+    {
+        if (!(gMain.heldKeys & B_BUTTON)) // Se NON stai premendo B
+            return PLAYER_SPEED_FAST;     // Corri
+        else
+            return PLAYER_SPEED_NORMAL;   // Se premi B, cammina
+    }
+    // --- Fine Modifica Autorun ---
+    else if (gPlayerAvatar.flags & PLAYER_AVATAR_FLAG_DASH)
         return PLAYER_SPEED_FAST;
     else
         return PLAYER_SPEED_NORMAL;

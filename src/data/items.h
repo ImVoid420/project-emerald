@@ -15490,6 +15490,22 @@ const struct Item gItemsInfo[] =
         .iconPic = gItemIcon_PokeshiDoll,
         .iconPalette = gItemIconPalette_PokeshiDoll,
     },
+
+    [ITEM_POKE_VIAL] =
+    {
+        .name = ITEM_NAME("PokéVial"),
+        .price = 0,
+        .description = COMPOUND_STRING(
+            "Cura i Pokémon.\n"
+            "Si ricarica ai\n"
+            "Centri Pokémon."),
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_BAG_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_PokeVial,
+        .iconPic = gItemIcon_PokeVial,
+        .iconPalette = gItemIconPalette_PokeVial,
+    },
+
 };
 
 #undef ITEM_NAME

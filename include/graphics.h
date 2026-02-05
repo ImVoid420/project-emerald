@@ -1514,6 +1514,8 @@ extern const u32 gItemIcon_FameChecker[];
 extern const u16 gItemIconPalette_FameChecker[];
 extern const u32 gItemIcon_TeachyTV[];
 extern const u16 gItemIconPalette_TeachyTV[];
+extern const u32 gItemIcon_PokeVial[];
+extern const u16 gItemIconPalette_PokeVial[];
 // Story Key Items
 extern const u32 gItemIcon_SSTicket[];
 extern const u16 gItemIconPalette_SSTicket[];

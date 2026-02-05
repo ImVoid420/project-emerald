@@ -474,3 +474,27 @@ Text_MonUsedRockClimb:
 Text_CantRockClimb:
     .string "The cliff is steep.\n"
     .string "A Pokémon may be able to climb it.$"
+
+EventScript_PokeVial::
+    lockall
+    compare 0x4050, 0
+    goto_if_eq EventScript_PokeVial_NoCharges
+    subvar 0x4050, 1
+    special HealPlayerParty
+    playfanfare MUS_HEAL
+    msgbox Text_VialUsed, MSGBOX_DEFAULT
+    waitfanfare
+    releaseall
+    end
+
+EventScript_PokeVial_NoCharges:
+    msgbox Text_VialEmpty, MSGBOX_DEFAULT
+    releaseall
+    end
+
+Text_VialUsed:
+    .string "Hai usato il PokéVial.\n"
+    .string "La squadra è stata curata!$"
+
+Text_VialEmpty:
+    .string "Il PokéVial è vuoto...$"
