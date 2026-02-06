@@ -269,7 +269,10 @@
 
 #define VAR_DEXNAV_SPECIES                               0x40F7 // Specie attualmente registrata nel DexNav
 #define VAR_DEXNAV_STEP_COUNTER                          0x40F8 // Contatore passi per il DexNav
-#define VAR_UNUSED_0x40F9                                0x40F9 // Unused Var
+
+/* POKEVIAL VAR */
+
+#define VAR_POKE_VIAL_CHARGES                            0x40F9 // Gestisce ricariche pokevial
 #define VAR_UNUSED_0x40FA                                0x40FA // Unused Var
 #define VAR_UNUSED_0x40FB                                0x40FB // Unused Var
 #define VAR_UNUSED_0x40FC                                0x40FC // Unused Var

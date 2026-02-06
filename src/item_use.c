@@ -1619,30 +1619,60 @@ void ItemUseOutOfBattle_TownMap(u8 taskId)
 }
 
 
-// 1. DICHIARAZIONI (Mettile subito sopra la funzione ItemUseOnFieldCB_PokeVial)
-extern const u8 EventScript_PokeVial[]; 
-static void ItemUseOnFieldCB_PokeVial(u8 taskId, void (*callback)(u8));
+// --- 1. DICHIARAZIONI ---
+extern const u8 EventScript_PokeVial[];
 
-// --- PROTOTIPO AGGIORNATO ---
-static void ItemUseOnFieldCB_PokeVial(u8 taskId, void (*callback)(u8));
+// Callback per tornare alla lista strumenti dopo il messaggio nello zaino
+static void Task_ReturnToBagFromVialMsg(u8 taskId)
+{
+    if (JOY_NEW(A_BUTTON | B_BUTTON))
+    {
+        // Pulizia della finestra
+        ClearDialogWindowAndFrame(0, TRUE);
+        
+        // SOLUZIONE ATOMICA: 
+        // Invece di chiamare funzioni dello zaino, diciamo al gioco di
+        // tornare allo stato precedente registrato nel sistema (che è lo zaino stesso).
+        // Se non trova un callback, tornerà semplicemente al gioco, evitando crash.
+        if (gMain.savedCallback != NULL)
+            SetMainCallback2(gMain.savedCallback);
+        else
+            SetMainCallback2(CB2_ReturnToField); // Questa è sempre pubblica in overworld.h
 
-// --- LOGICA DI USCITA ---
+        DestroyTask(taskId);
+    }
+}
+
+// Callback per l'uso dall'overworld (Select)
 static void ItemUseOnFieldCB_PokeVial(u8 taskId, void (*callback)(u8))
 {
     if (EventScript_PokeVial != NULL)
         ScriptContext_SetupScript(EventScript_PokeVial);
     
-    // Nella expansion si usa spesso il callback passato per pulire
     if (callback != NULL)
         callback(taskId);
 
     DestroyTask(taskId);
 }
 
-// --- FUNZIONE PRINCIPALE ---
+// --- 2. FUNZIONE PRINCIPALE ---
 void ItemUseOutOfBattle_PokeVial(u8 taskId)
 {
     u8 i;
+    u16 charges = VarGet(0x40F9);
+
+    if (charges == 0)
+    {
+        DisplayItemMessage(taskId, 2, COMPOUND_STRING("Il PokéVial è vuoto..."), Task_ReturnToBagFromVialMsg);
+        return;
+    }
+
+    if (ScriptContext_IsEnabled() == TRUE) 
+    {
+        gItemUseCB = ItemUseOnFieldCB_PokeVial;
+        SetUpItemUseCallback(taskId);
+        return;
+    }
 
     for (i = 0; i < PARTY_SIZE; i++)
     {
@@ -1656,11 +1686,15 @@ void ItemUseOutOfBattle_PokeVial(u8 taskId)
         }
     }
 
-    PlaySE(SE_USE_ITEM); 
+    charges--;
+    VarSet(0x40F9, charges);
+    PlaySE(SE_USE_ITEM);
 
-    // Ora il puntatore sarà compatibile
-    gItemUseCB = ItemUseOnFieldCB_PokeVial;
-    SetUpItemUseCallback(taskId);
+    // Conversione sicura
+    ConvertIntToDecimalStringN(gStringVar1, charges, STR_CONV_MODE_LEFT_ALIGN, 1);
+    StringExpandPlaceholders(gStringVar4, COMPOUND_STRING("Squadra curata!\nCariche rimaste: {STR_VAR_1}."));
+    
+    DisplayItemMessage(taskId, 2, gStringVar4, Task_ReturnToBagFromVialMsg);
 }
 
 #undef tUsingRegisteredKeyItem

@@ -477,10 +477,14 @@ Text_CantRockClimb:
 
 EventScript_PokeVial::
     lockall
-    compare 0x4050, 0
+    compare 0x40F9, 0  @ Confronta il contenuto della variabile 0x40F9 con 0
     goto_if_eq EventScript_PokeVial_NoCharges
-    subvar 0x4050, 1
+    
+    @ Se arriviamo qui, ci sono cariche
     special HealPlayerParty
+    subvar 0x40F9, 1
+    buffernumberstring STR_VAR_1, 0x40F9 @ Nota: STR_VAR_1 è l'indice 0
+    
     playfanfare MUS_HEAL
     msgbox Text_VialUsed, MSGBOX_DEFAULT
     waitfanfare
@@ -494,7 +498,7 @@ EventScript_PokeVial_NoCharges:
 
 Text_VialUsed:
     .string "Hai usato il PokéVial.\n"
-    .string "La squadra è stata curata!$"
+    .string "Cariche rimaste: {STR_VAR_1}.$"
 
 Text_VialEmpty:
     .string "Il PokéVial è vuoto...$"
