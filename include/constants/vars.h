@@ -273,6 +273,7 @@
 /* POKEVIAL VAR */
 
 #define VAR_POKE_VIAL_CHARGES                            0x40F9 // Gestisce ricariche pokevial
+
 #define VAR_UNUSED_0x40FA                                0x40FA // Unused Var
 #define VAR_UNUSED_0x40FB                                0x40FB // Unused Var
 #define VAR_UNUSED_0x40FC                                0x40FC // Unused Var

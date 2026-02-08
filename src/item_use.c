@@ -1646,7 +1646,17 @@ void ItemUseOutOfBattle_PokeVial(u8 taskId)
 
     if (charges == 0)
     {
-        DisplayCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem, COMPOUND_STRING("Il PokéVial è vuoto..."));
+        // Se è vuoto, usiamo lo stesso sistema che "aspetta" il tasto A
+        if (gTasks[taskId].tUsingRegisteredKeyItem)
+        {
+            // Se usato con SELECT dall'Overworld
+            DisplayItemMessageOnField(taskId, COMPOUND_STRING("Il PokéVial è vuoto..."), Task_PokeVial_CloseOnField);
+        }
+        else
+        {
+            // Se usato dallo zaino, usiamo il task che aspetta l'input (Task_PokeVial_WaitAndClose)
+            DisplayItemMessage(taskId, FONT_NORMAL, COMPOUND_STRING("Il PokéVial è vuoto..."), Task_PokeVial_WaitAndClose);
+        }
         return;
     }
 

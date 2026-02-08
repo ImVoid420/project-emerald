@@ -1535,7 +1535,7 @@
 #define FLAG_UNUSED_0x8FE                           (SYSTEM_FLAGS + 0x9E) // Unused Flag
 #define FLAG_UNUSED_0x8FF                           (SYSTEM_FLAGS + 0x9F) // Unused Flag
 
-/* DEXNAV FLAGS */
+/* DEXNAV */
 
 #define FLAG_SYS_DEXNAV_GET                         (SYSTEM_FLAGS + 0xA0) // Ottenimento DexNav
 #define FLAG_SYS_DETECTOR_MODE                      (SYSTEM_FLAGS + 0xA1) // Fa visualizzare i selvatici in overworld
@@ -1546,13 +1546,16 @@
 
 /* CONDIVIDI EXP 6 GEN */
 
-#define FLAG_GEN6_EXP_SHARE                           (SYSTEM_FLAGS + 0xA3) // Condividi Esp stile Gen 6
+#define FLAG_GEN6_EXP_SHARE                         (SYSTEM_FLAGS + 0xA3) // Condividi Esp stile Gen 6
 
 /* VOLO ANCHE DA MAPPA E POKENAV */
 
-#define FLAG_SYS_POKE_RIDER                           (SYSTEM_FLAGS + 0xA4) // Abilita il volo rapido dalla mappa e dal pokenav
+#define FLAG_SYS_POKE_RIDER                         (SYSTEM_FLAGS + 0xA4) // Abilita il volo rapido dalla mappa e dal pokenav
 
-#define FLAG_UNUSED_0x905                           (SYSTEM_FLAGS + 0xA5) // Unused Flag
+/* POKEVIAL */
+
+#define FLAG_RECEIVED_POKEVIAL                      (SYSTEM_FLAGS + 0xA5) // Unused Flag
+
 #define FLAG_UNUSED_0x906                           (SYSTEM_FLAGS + 0xA6) // Unused Flag
 #define FLAG_UNUSED_0x907                           (SYSTEM_FLAGS + 0xA7) // Unused Flag
 #define FLAG_UNUSED_0x908                           (SYSTEM_FLAGS + 0xA8) // Unused Flag

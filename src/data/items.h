@@ -15495,7 +15495,7 @@ const struct Item gItemsInfo[] =
     {
         .name = ITEM_NAME("PokéVial"),
         .price = 0,
-        .description = COMPOUND_STRING("Uno speciale flacone\nche cura i Pokémon."),
+        .description = COMPOUND_STRING("Uno speciale\nflacone\nche cura i Pokémon."),
         .pocket = POCKET_KEY_ITEMS,
         .type = ITEM_USE_BAG_MENU,
         .fieldUseFunc = ItemUseOutOfBattle_PokeVial,

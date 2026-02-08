@@ -1,6 +1,20 @@
+EventScript_PkmnCenterNurse_Goodbye::
+	message gText_WeHopeToSeeYouAgain
+	return
+
 Common_EventScript_PkmnCenterNurse::
 	lock
 	faceplayer
+	@ --- INIZIO LOGICA OTTENIMENTO POKÉVIAL ---
+	@ Se non hai la flag 0x905, ti dà subito l'oggetto prima di ogni altra cosa
+	goto_if_set 0x905, EventScript_PkmnCenterNurse_SkipGiveVial
+	msgbox EventScript_PkmnCenterNurse_Text_GiveVial, MSGBOX_DEFAULT
+	giveitem ITEM_POKE_VIAL
+	setflag 0x905
+	setvar 0x40F9, 5
+	msgbox EventScript_PkmnCenterNurse_Text_ExplainVial, MSGBOX_DEFAULT
+EventScript_PkmnCenterNurse_SkipGiveVial:
+	@ --- FINE LOGICA OTTENIMENTO POKÉVIAL ---
 	setvar VAR_0x8004, 0
 	specialvar VAR_RESULT, CountPlayerTrainerStars
 	goto_if_eq VAR_RESULT, 4, EventScript_PkmnCenterNurse_GoldCard
@@ -9,14 +23,9 @@ Common_EventScript_PkmnCenterNurse::
 	goto_if_eq VAR_RESULT, NO, EventScript_PkmnCenterNurse_Goodbye
 	end
 
-EventScript_PkmnCenterNurse_Goodbye::
-	message gText_WeHopeToSeeYouAgain
-	return
-
-@ VAR_0x8004 is 1 when player has Gold Card; jumps are identical
 EventScript_PkmnCenterNurse_HealPkmn::
 	incrementgamestat GAME_STAT_USED_POKECENTER
-	setvar VAR_POKE_VIAL_CHARGES, 5  @ Carica il PokéVial a 5
+	setvar 0x40F9, 5  @ Ricarica sempre il Vial quando rispondi SI alla cura
 	call_if_eq VAR_0x8004, 0, EventScript_PkmnCenterNurse_IllTakeYourPkmn
 	call_if_eq VAR_0x8004, 1, EventScript_PkmnCenterNurse_IllTakeYourPkmn2
 	waitmessage
@@ -24,6 +33,18 @@ EventScript_PkmnCenterNurse_HealPkmn::
 	goto_if_unset FLAG_POKERUS_EXPLAINED, EventScript_PkmnCenterNurse_CheckPokerus
 	goto EventScript_PkmnCenterNurse_CheckTrainerHillAndUnionRoom
 	end
+
+EventScript_PkmnCenterNurse_Text_GiveVial:
+	.string "Benvenuto al Centro Pokémon!\p"
+	.string "Vedo che sei un nuovo allenatore.\n"
+	.string "Per aiutarti nel tuo viaggio,\l"
+	.string "vorrei consegnarti questo.$"
+
+EventScript_PkmnCenterNurse_Text_ExplainVial:
+	.string "È un PokéVial. Può curare i tuoi\n"
+	.string "Pokémon mentre sei in viaggio.\p"
+	.string "L'ho già caricato per te!\n"
+	.string "Ora, permettimi di curare i tuoi Pokémon.$"
 
 EventScript_PkmnCenterNurse_IllTakeYourPkmn::
 	message gText_IllTakeYourPkmn
