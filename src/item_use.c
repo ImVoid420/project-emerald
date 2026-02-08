@@ -1618,44 +1618,27 @@ void ItemUseOutOfBattle_TownMap(u8 taskId)
     }
 }
 
-
-// --- 1. DICHIARAZIONI ---
-extern const u8 EventScript_PokeVial[];
-
-// Callback per tornare alla lista strumenti dopo il messaggio nello zaino
-static void Task_ReturnToBagFromVialMsg(u8 taskId)
+// Callback per Select (Overworld)
+static void Task_PokeVial_CloseOnField(u8 taskId)
 {
     if (JOY_NEW(A_BUTTON | B_BUTTON))
     {
-        // Pulizia della finestra
         ClearDialogWindowAndFrame(0, TRUE);
-        
-        // SOLUZIONE ATOMICA: 
-        // Invece di chiamare funzioni dello zaino, diciamo al gioco di
-        // tornare allo stato precedente registrato nel sistema (che è lo zaino stesso).
-        // Se non trova un callback, tornerà semplicemente al gioco, evitando crash.
-        if (gMain.savedCallback != NULL)
-            SetMainCallback2(gMain.savedCallback);
-        else
-            SetMainCallback2(CB2_ReturnToField); // Questa è sempre pubblica in overworld.h
-
+        ScriptContext_Enable();
+        ScriptUnfreezeObjectEvents();
+        UnlockPlayerFieldControls();
         DestroyTask(taskId);
     }
 }
 
-// Callback per l'uso dall'overworld (Select)
-static void ItemUseOnFieldCB_PokeVial(u8 taskId, void (*callback)(u8))
+static void Task_PokeVial_WaitAndClose(u8 taskId)
 {
-    if (EventScript_PokeVial != NULL)
-        ScriptContext_SetupScript(EventScript_PokeVial);
-    
-    if (callback != NULL)
-        callback(taskId);
-
-    DestroyTask(taskId);
+    if (JOY_NEW(A_BUTTON | B_BUTTON))
+    {
+        CloseItemMessage(taskId);
+    }
 }
 
-// --- 2. FUNZIONE PRINCIPALE ---
 void ItemUseOutOfBattle_PokeVial(u8 taskId)
 {
     u8 i;
@@ -1663,21 +1646,14 @@ void ItemUseOutOfBattle_PokeVial(u8 taskId)
 
     if (charges == 0)
     {
-        DisplayItemMessage(taskId, 2, COMPOUND_STRING("Il PokéVial è vuoto..."), Task_ReturnToBagFromVialMsg);
+        DisplayCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem, COMPOUND_STRING("Il PokéVial è vuoto..."));
         return;
     }
 
-    if (ScriptContext_IsEnabled() == TRUE) 
-    {
-        gItemUseCB = ItemUseOnFieldCB_PokeVial;
-        SetUpItemUseCallback(taskId);
-        return;
-    }
-
+    // Effetto cura
     for (i = 0; i < PARTY_SIZE; i++)
     {
-        if (GetMonData(&gPlayerParty[i], MON_DATA_SPECIES) != SPECIES_NONE 
-            && !GetMonData(&gPlayerParty[i], MON_DATA_IS_EGG))
+        if (GetMonData(&gPlayerParty[i], MON_DATA_SPECIES) != SPECIES_NONE && !GetMonData(&gPlayerParty[i], MON_DATA_IS_EGG))
         {
             u16 maxHP = GetMonData(&gPlayerParty[i], MON_DATA_MAX_HP);
             SetMonData(&gPlayerParty[i], MON_DATA_HP, &maxHP);
@@ -1690,11 +1666,20 @@ void ItemUseOutOfBattle_PokeVial(u8 taskId)
     VarSet(0x40F9, charges);
     PlaySE(SE_USE_ITEM);
 
-    // Conversione sicura
     ConvertIntToDecimalStringN(gStringVar1, charges, STR_CONV_MODE_LEFT_ALIGN, 1);
     StringExpandPlaceholders(gStringVar4, COMPOUND_STRING("Squadra curata!\nCariche rimaste: {STR_VAR_1}."));
-    
-    DisplayItemMessage(taskId, 2, gStringVar4, Task_ReturnToBagFromVialMsg);
+
+    if (gTasks[taskId].tUsingRegisteredKeyItem)
+    {
+        DisplayItemMessageOnField(taskId, gStringVar4, Task_PokeVial_CloseOnField);
+    }
+    else
+    {
+        // USATO DALLO ZAINO:
+        // Usiamo Task_PokeVial_WaitAndClose invece di CloseItemMessage direttamente.
+        // Questo costringe il gioco a passare per il controllo dei tasti A/B.
+        DisplayItemMessage(taskId, FONT_NORMAL, gStringVar4, Task_PokeVial_WaitAndClose);
+    }
 }
 
 #undef tUsingRegisteredKeyItem

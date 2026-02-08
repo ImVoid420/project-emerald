@@ -15495,15 +15495,12 @@ const struct Item gItemsInfo[] =
     {
         .name = ITEM_NAME("PokéVial"),
         .price = 0,
-        .description = COMPOUND_STRING(
-            "Cura i Pokémon.\n"
-            "Si ricarica ai\n"
-            "Centri Pokémon."),
+        .description = COMPOUND_STRING("Uno speciale flacone\nche cura i Pokémon."),
         .pocket = POCKET_KEY_ITEMS,
         .type = ITEM_USE_BAG_MENU,
         .fieldUseFunc = ItemUseOutOfBattle_PokeVial,
-        .iconPic = gItemIcon_PokeVial,
-        .iconPalette = gItemIconPalette_PokeVial,
+        .iconPic = gItemIcon_PokeVial,         // Assicurati che queste icone esistano
+        .iconPalette = gItemIconPalette_PokeVial, // o usa quelle di una pozione per test
     },
 
 };
