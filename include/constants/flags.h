@@ -1556,7 +1556,10 @@
 
 #define FLAG_RECEIVED_POKEVIAL                      (SYSTEM_FLAGS + 0xA5) // Unused Flag
 
-#define FLAG_UNUSED_0x906                           (SYSTEM_FLAGS + 0xA6) // Unused Flag
+/* MOVE TUTOR */
+
+#define FLAG_SYS_MOVE_TUTOR_ENABLED                 (SYSTEM_FLAGS + 0xA6) // Abilita move tutor nella schermata squadra
+
 #define FLAG_UNUSED_0x907                           (SYSTEM_FLAGS + 0xA7) // Unused Flag
 #define FLAG_UNUSED_0x908                           (SYSTEM_FLAGS + 0xA8) // Unused Flag
 #define FLAG_UNUSED_0x909                           (SYSTEM_FLAGS + 0xA9) // Unused Flag

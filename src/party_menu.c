@@ -2874,12 +2874,15 @@ static void SetPartyMonFieldSelectionActions(struct Pokemon *mons, u8 slotId)
     sPartyMenuInternal->numActions = 0;
     AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_SUMMARY);
 
-    if (P_PARTY_MOVE_RELEARNER
+    if (P_PARTY_MOVE_RELEARNER 
+     && FlagGet(FLAG_SYS_MOVE_TUTOR_ENABLED) // La feature deve essere attiva via flag
      && (GetMonData(&mons[slotId], MON_DATA_SPECIES)
      && (HasRelearnerLevelUpMoves(&mons[slotId]) || HasRelearnerEggMoves(&mons[slotId])
      || HasRelearnerTMMoves(&mons[slotId]) || HasRelearnerTutorMoves(&mons[slotId]))))
+    {
         AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_SUB_MOVES);
-
+    }
+    
     // Add field moves to action list
     for (i = 0; i < MAX_MON_MOVES; i++)
     {
