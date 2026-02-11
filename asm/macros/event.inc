@@ -544,6 +544,11 @@
 	.2byte \quantity
 	.endm
 
+	@ Opens the Quest Menu.
+	.macro questmenu
+	.byte 0xe6
+	.endm
+
 	@ Removes quantity of the specified item from the player's Bag. If the player has fewer than 'quantity' in their bag
 	@ then none will be removed and VAR_RESULT will be set to FALSE. Otherwise it will be set to TRUE.
 	.macro removeitem itemId:req, quantity=1

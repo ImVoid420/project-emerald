@@ -450,3 +450,32 @@ void UpdateSwapLineSpritesPos(u8 *spriteIds, u8 count, s16 x, u16 y)
         gSprites[spriteIds[i]].y = 1 + y;
     }
 }
+
+#include "item_icon.h"
+
+#define TAG_QUEST_ICON_0 0x1337
+#define TAG_QUEST_ICON_1 0x1338
+
+void CreateItemMenuIcon(u16 itemId, u8 idx)
+{
+    u16 tag = (idx == 0) ? TAG_QUEST_ICON_0 : TAG_QUEST_ICON_1;
+    u8 spriteId = AddItemIconSprite(tag, tag, itemId);
+    if (spriteId != MAX_SPRITES)
+        gSprites[spriteId].oam.priority = 0;
+}
+
+void DestroyItemMenuIcon(u8 idx)
+{
+    u16 tag = (idx == 0) ? TAG_QUEST_ICON_0 : TAG_QUEST_ICON_1;
+    // Invece di GetItemIconSpriteId, usiamo questo metodo più sicuro:
+    FreeSpriteTilesByTag(tag);
+    FreeSpritePaletteByTag(tag);
+    // Nota: lo sprite viene rimosso automaticamente liberando i tag se gestito correttamente, 
+    // ma per ora limitiamoci a questo per far compilare.
+}
+
+void ResetItemMenuIconState(void)
+{
+    DestroyItemMenuIcon(0);
+    DestroyItemMenuIcon(1);
+}

@@ -1560,7 +1560,10 @@
 
 #define FLAG_SYS_MOVE_TUTOR_ENABLED                 (SYSTEM_FLAGS + 0xA6) // Abilita move tutor nella schermata squadra
 
-#define FLAG_UNUSED_0x907                           (SYSTEM_FLAGS + 0xA7) // Unused Flag
+/* QUEST MENU */
+
+#define FLAG_QUEST_MENU_ACTIVE                      (SYSTEM_FLAGS + 0xA7) // Attiva quest menu
+
 #define FLAG_UNUSED_0x908                           (SYSTEM_FLAGS + 0xA8) // Unused Flag
 #define FLAG_UNUSED_0x909                           (SYSTEM_FLAGS + 0xA9) // Unused Flag
 #define FLAG_UNUSED_0x90A                           (SYSTEM_FLAGS + 0xAA) // Unused Flag

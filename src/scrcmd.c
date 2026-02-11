@@ -40,6 +40,7 @@
 #include "party_menu.h"
 #include "pokedex.h"
 #include "pokemon_storage_system.h"
+#include "quests.h"
 #include "random.h"
 #include "overworld.h"
 #include "rotating_tile_puzzle.h"
@@ -3290,4 +3291,12 @@ bool8 ScrCmd_istmrelearneractive(struct ScriptContext *ctx)
         ScriptCall(ctx, ptr);
 
     return FALSE;
+}
+
+bool8 ScrCmd_questmenu(struct ScriptContext *ctx)
+{
+    // Il primo argomento 'a0' di solito è un indice o un flag
+    // Il secondo è la callback per tornare alla mappa
+    QuestMenu_Init(0, CB2_ReturnToField);
+    return TRUE;
 }
