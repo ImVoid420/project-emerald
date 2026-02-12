@@ -60,10 +60,10 @@ static const struct WindowTemplate sQuestMenuWindowTemplates[] =
 {
     {
         .bg = 0,
-        .tilemapLeft = 4,   
-        .tilemapTop = 8,    
-        .width = 22,
-        .height = 4,        
+        .tilemapLeft = 2,   // Margine sinistro (2 tile = 16px)
+        .tilemapTop = 4,    // Margine superiore (regolalo per centrare il testo nel diario)
+        .width = 26,        // Occupa quasi tutto lo schermo in larghezza
+        .height = 12,       // Spazio per circa 6 missioni
         .paletteNum = 15,
         .baseBlock = 1,
     },
@@ -112,7 +112,7 @@ static void QuestMenu_MainCB(void)
             SetVBlankCallback(NULL);
             SetGpuReg(REG_OFFSET_DISPCNT, 0);
             
-            // Reset scorrimento per centrare la UI
+            // RESET TOTALE OFFSET: La tilemap (.bin) gestisce la posizione dei tile
             SetGpuReg(REG_OFFSET_BG0HOFS, 0);
             SetGpuReg(REG_OFFSET_BG0VOFS, 0);
             SetGpuReg(REG_OFFSET_BG1HOFS, 0);
@@ -128,33 +128,37 @@ static void QuestMenu_MainCB(void)
             DmaClear16(3, (void *)PLTT, PLTT_SIZE);
             gMain.state++;
             break;
+
         case 1:
+            // Caricamento Tileset e Tilemap
             LZ77UnCompVram(gQuestMenu_Gfx, (void *)(VRAM + 0x4000)); 
             LZ77UnCompWram(gQuestMenu_Tilemap, GetBgTilemapBuffer(1));
             
-            // Carica palette del diario (Slot 0) e testi (Slot 15)
-            // IMPORTANTE: Assicurati di aver cancellato menu.pal JASC prima del make
             LoadPalette(gQuestMenu_Pal, 0, 32); 
             LoadPalette(sQuestMenuTextPalette, 15 * 16, 32);
             
             SetVBlankCallback(QuestMenu_VBlankCB);
             gMain.state++;
             break;
+
         case 2:
             CopyBgTilemapBufferToVram(1);
             
-            // Centriamo il diario 128x32 sullo schermo 240x160
-            SetGpuReg(REG_OFFSET_BG1VOFS, -64); 
-            SetGpuReg(REG_OFFSET_BG1HOFS, -56); 
+            // Assicuriamoci che gli offset rimangano a 0 prima di mostrare i BG
+            SetGpuReg(REG_OFFSET_BG1VOFS, 0); 
+            SetGpuReg(REG_OFFSET_BG1HOFS, 0); 
 
             PutWindowTilemap(0);
             PrintQuestsList();
             
             ShowBg(0);
             ShowBg(1);
+            
+            // Attivazione display
             SetGpuReg(REG_OFFSET_DISPCNT, DISPCNT_MODE_0 | DISPCNT_OBJ_1D_MAP | DISPCNT_BG0_ON | DISPCNT_BG1_ON | DISPCNT_OBJ_ON);
             gMain.state++;
             break;
+
         case 3:
             if (JOY_NEW(B_BUTTON))
             {
