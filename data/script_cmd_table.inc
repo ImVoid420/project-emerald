@@ -253,6 +253,9 @@ gScriptCmdTable::
 	script_cmd_table_entry SCR_OP_DYNMULTIPUSH                  ScrCmd_dynmultipush,                requests_effects=1  @ 0xe4
 	script_cmd_table_entry SCR_OP_HIDEFOLLOWER                  ScrCmd_hidefollower,                requests_effects=1  @ 0xe5
 	script_cmd_table_entry SCR_OP_QUEST_MENU                    ScrCmd_questmenu,                   requests_effects=1  @ 0xe6
+	script_cmd_table_entry SCR_OP_START_QUEST           		ScrCmd_startquest,                  requests_effects=1  @ 0xe7
+	script_cmd_table_entry SCR_OP_COMPLETE_QUEST         		ScrCmd_completequest,               requests_effects=1  @ 0xe8
+	script_cmd_table_entry SCR_OP_CHECK_QUEST           		ScrCmd_checkquest,                  requests_effects=1  @ 0xe9
 
 	.if ALLOCATE_SCRIPT_CMD_TABLE
 gScriptCmdTableEnd::

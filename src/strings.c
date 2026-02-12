@@ -1288,6 +1288,7 @@ const u8 gText_CannotSendMonToBoxHM[] = _("Cannot send that mon to the box,\nbec
 const u8 gText_CannotSendMonToBoxActive[] = _("Cannot send an active battler\nto the box.{PAUSE_UNTIL_PRESS}");
 const u8 gText_CannotSendMonToBoxPartner[] = _("Cannot send a mon that doesn't,\nbelong to you to the box.{PAUSE_UNTIL_PRESS}");
 
+const u8 gText_MenuQuests[] = _("Quests");
 //// side quest data
 //names
 const u8 gText_SideQuestName_1[] = _("Side Quest 1");

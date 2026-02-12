@@ -1,6 +1,15 @@
 #ifndef GUARD_CONSTANTS_QUESTS_H
 #define GUARD_CONSTANTS_QUESTS_H
 
+// Stati missione richiesti dal menu Unbound
+#define QUEST_STATE_INACTIVE  0
+#define QUEST_STATE_ACTIVE    1
+#define QUEST_STATE_REWARD    2
+#define QUEST_STATE_COMPLETED 3
+
+#define SIDE_QUEST_COUNT     SIDE_QUEST_30 + 1
+#define SIDE_QUEST_FLAGS_COUNT (SIDE_QUEST_COUNT / 8) + 1
+
 #define SIDE_QUEST_1          0
 #define SIDE_QUEST_2          1
 #define SIDE_QUEST_3          2
@@ -31,6 +40,5 @@
 #define SIDE_QUEST_28        27
 #define SIDE_QUEST_29        28
 #define SIDE_QUEST_30        29
-#define SIDE_QUEST_COUNT     SIDE_QUEST_30 + 1
 
 #endif // GUARD_CONSTANTS_QUESTS_H

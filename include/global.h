@@ -22,6 +22,7 @@
 #include "constants/trainer_hill.h"
 #include "constants/items.h"
 #include "config/save.h"
+#include "constants/quests.h"
 
 // Prevent cross-jump optimization.
 #define BLOCK_CROSS_JUMP asm("");
@@ -570,9 +571,6 @@ struct RankingHall2P
     u8 language;
     //u8 padding;
 };
-
-#include "constants/quests.h"
-#define SIDE_QUEST_FLAGS_COUNT     ((SIDE_QUEST_COUNT / 8) + ((SIDE_QUEST_COUNT % 8) ? 1 : 0))
 
 struct SaveBlock2
 {

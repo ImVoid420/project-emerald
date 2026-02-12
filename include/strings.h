@@ -2415,6 +2415,8 @@ extern const u8 gText_CannotSendMonToBoxHM[];
 extern const u8 gText_CannotSendMonToBoxActive[];
 extern const u8 gText_CannotSendMonToBoxPartner[];
 
+extern const u8 gText_MenuQuests[];
+
 // Side Quest Names
 extern const u8 gText_SideQuestName_1[];
 extern const u8 gText_SideQuestName_2[];

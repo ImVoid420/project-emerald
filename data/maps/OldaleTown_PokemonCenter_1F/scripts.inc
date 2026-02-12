@@ -60,3 +60,38 @@ OldaleTown_PokemonCenter_1F_Text_TradedInWirelessClub:
 	.string "the second floor was built recently.\p"
 	.string "I traded POKéMON right away.$"
 
+OldaleCenter_QuestNPC::
+	lock
+	faceplayer
+	checkquest SIDE_QUEST_1, 1      @ Controlla se la missione è finita
+	compare VAR_RESULT, 1
+	goto_if_eq OldaleCenter_QuestFinished
+	
+	checkquest SIDE_QUEST_1, 0      @ Controlla se la missione è attiva
+	compare VAR_RESULT, 1
+	goto_if_eq OldaleCenter_CompleteQuest
+	
+	startquest SIDE_QUEST_1         @ Se non è nessuna delle due, inizia
+	msgbox OldaleCenter_Text_Started, MSGBOX_DEFAULT
+	release
+	end
+
+OldaleCenter_QuestFinished:
+	msgbox OldaleCenter_Text_Finished, MSGBOX_DEFAULT
+	release
+	end
+
+OldaleCenter_CompleteQuest:
+	completequest SIDE_QUEST_1
+	msgbox OldaleCenter_Text_Completed, MSGBOX_DEFAULT
+	release
+	end
+
+OldaleCenter_Text_Started:
+	.string "Ho iniziato la missione SIDE_QUEST_1!$"
+
+OldaleCenter_Text_Completed:
+	.string "Bravo! Hai completato la missione!$"
+
+OldaleCenter_Text_Finished:
+	.string "Grazie ancora per l'aiuto.$"

@@ -3297,6 +3297,36 @@ bool8 ScrCmd_questmenu(struct ScriptContext *ctx)
 {
     // Il primo argomento 'a0' di solito è un indice o un flag
     // Il secondo è la callback per tornare alla mappa
-    QuestMenu_Init(0, CB2_ReturnToField);
+    QuestMenu_Init(CB2_ReturnToField);
     return TRUE;
+}
+
+// Comando per attivare una missione
+bool8 ScrCmd_startquest(struct ScriptContext *ctx)
+{
+    u8 questId = ScriptReadByte(ctx);
+    GetSetQuestFlag(questId, FLAG_SET_UNLOCKED);
+    return FALSE;
+}
+
+// Comando per completare una missione
+bool8 ScrCmd_completequest(struct ScriptContext *ctx)
+{
+    u8 questId = ScriptReadByte(ctx);
+    GetSetQuestFlag(questId, FLAG_SET_COMPLETED);
+    return FALSE;
+}
+
+// Comando per controllare lo stato di una missione (ritorna il risultato in VAR_RESULT)
+bool8 ScrCmd_checkquest(struct ScriptContext *ctx)
+{
+    u8 questId = ScriptReadByte(ctx);
+    u8 mode = ScriptReadByte(ctx); // 0 per sbloccata, 1 per completata
+    
+    if (mode == 0)
+        gSpecialVar_Result = GetSetQuestFlag(questId, FLAG_GET_UNLOCKED);
+    else
+        gSpecialVar_Result = GetSetQuestFlag(questId, FLAG_GET_COMPLETED);
+        
+    return FALSE;
 }

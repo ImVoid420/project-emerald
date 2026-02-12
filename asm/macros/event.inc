@@ -2715,3 +2715,25 @@
 	callnative ScrCmd_istmrelearneractive, requests_effects=1
 	.4byte \destination
 	.endm
+
+@ Inizia una missione
+	.macro startquest quest:req
+	.byte 0xe7
+	.byte \quest
+	.endm
+
+	@ Completa una missione
+	.macro completequest quest:req
+	.byte 0xe8
+	.byte \quest
+	.endm
+
+	@ Controlla se una missione è sbloccata (0) o completata (1)
+	@ Il risultato va in VAR_RESULT
+	.macro checkquest quest:req, mode:req
+	.byte 0xe9
+	.byte \quest
+	.byte \mode
+	.endm
+
+	.equ SIDE_QUEST_1, 0

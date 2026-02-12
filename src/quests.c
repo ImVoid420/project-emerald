@@ -38,3 +38,13 @@ const struct SideQuest gSideQuests[SIDE_QUEST_COUNT] =
         .reward = gText_SideQuestReward_1,
     },
 };
+
+bool8 CheckQuestUnlocked(u8 questId)
+{
+    return GetSetQuestFlag(questId, FLAG_GET_UNLOCKED) == 1;
+}
+
+bool8 CheckQuestCompleted(u8 questId)
+{
+    return GetSetQuestFlag(questId, FLAG_GET_COMPLETED) == 1;
+}

@@ -30,6 +30,7 @@
 #include "party_menu.h"
 #include "pokedex.h"
 #include "pokenav.h"
+#include "quest_menu.h"
 #include "safari_zone.h"
 #include "save.h"
 #include "scanline_effect.h"
@@ -56,6 +57,7 @@ enum
     MENU_ACTION_POKEDEX,
     MENU_ACTION_POKEMON,
     MENU_ACTION_BAG,
+    MENU_ACTION_QUESTS,
     MENU_ACTION_POKENAV,
     MENU_ACTION_PLAYER,
     MENU_ACTION_SAVE,
@@ -136,6 +138,7 @@ static u8 SaveReturnErrorCallback(void);
 static u8 BattlePyramidConfirmRetireCallback(void);
 static u8 BattlePyramidRetireYesNoCallback(void);
 static u8 BattlePyramidRetireInputCallback(void);
+static bool8 StartMenu_QuestsCallback(void);
 
 // Task callbacks
 static void StartMenuTask(u8 taskId);
@@ -193,6 +196,7 @@ static const struct MenuAction sStartMenuItems[] =
     [MENU_ACTION_POKEDEX]         = {gText_MenuPokedex, {.u8_void = StartMenuPokedexCallback}},
     [MENU_ACTION_POKEMON]         = {gText_MenuPokemon, {.u8_void = StartMenuPokemonCallback}},
     [MENU_ACTION_BAG]             = {gText_MenuBag,     {.u8_void = StartMenuBagCallback}},
+    [MENU_ACTION_QUESTS]          = {gText_MenuQuests,  {.u8_void = StartMenu_QuestsCallback}},
     [MENU_ACTION_POKENAV]         = {gText_MenuPokenav, {.u8_void = StartMenuPokeNavCallback}},
     [MENU_ACTION_PLAYER]          = {gText_MenuPlayer,  {.u8_void = StartMenuPlayerNameCallback}},
     [MENU_ACTION_SAVE]            = {gText_MenuSave,    {.u8_void = StartMenuSaveCallback}},
@@ -339,6 +343,7 @@ static void BuildNormalStartMenu(void)
     if (FlagGet(FLAG_SYS_POKEMON_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKEMON);
 
+    AddStartMenuAction(MENU_ACTION_QUESTS);    
     AddStartMenuAction(MENU_ACTION_BAG);
 
     if (FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
@@ -650,6 +655,7 @@ static bool8 HandleStartMenuInput(void)
         if (gMenuCallback != StartMenuSaveCallback
             && gMenuCallback != StartMenuExitCallback
             && gMenuCallback != StartMenuDebugCallback
+            && gMenuCallback != StartMenu_QuestsCallback // Aggiunto per evitare il fade nero automatico
             && gMenuCallback != StartMenuSafariZoneRetireCallback
             && gMenuCallback != StartMenuBattlePyramidRetireCallback)
         {
@@ -1504,4 +1510,18 @@ void Script_ForceSaveGame(struct ScriptContext *ctx)
     ShowSaveInfoWindow();
     gMenuCallback = SaveCallback;
     sSaveDialogCallback = SaveSavingMessageCallback;
+}
+
+static bool8 StartMenu_QuestsCallback(void)
+{
+    if (!gPaletteFade.active)
+    {
+        PlaySE(SE_SELECT);
+        RemoveExtraStartMenuWindows();
+        CleanupOverworldWindowsAndTilemaps();
+        // Assicurati che passi CB2_ReturnToFieldWithOpenMenu o quello che usa la tua base
+        QuestMenu_Init(CB2_ReturnToFieldWithOpenMenu); 
+        return TRUE;
+    }
+    return FALSE;
 }

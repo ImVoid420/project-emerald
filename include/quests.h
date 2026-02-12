@@ -24,7 +24,7 @@ struct SideQuest
 extern const struct SideQuest gSideQuests[SIDE_QUEST_COUNT];
 
 // Qui aggiungi i prototipi delle funzioni che hai visto nel commit
-void QuestMenu_Init(u8 a0, MainCallback callback);
+void QuestMenu_Init(void (*callback)(void));
 s8 GetSetQuestFlag(u8 quest, u8 caseId);
 
 #endif
