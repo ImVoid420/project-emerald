@@ -14,32 +14,41 @@
 #include "malloc.h"
 #include "window.h"
 #include "text.h"
-#include "quests.h" // Importante per la struttura SideQuest
+#include "quests.h"
 #include "sound.h"
 #include "constants/songs.h"
 #include "constants/rgb.h"
+#include "constants/characters.h"
 
 // Risorse grafiche
-extern const u32 gQuestMenu_Gfx[];      
-extern const u32 gQuestMenu_Tilemap[];  
-extern const u32 gQuestMenu_Pal[];    
+extern const u32 gQuestMenu_Gfx[];
+extern const u32 gQuestMenu_Tilemap[];
+extern const u32 gQuestMenu_Pal[];
 
-// Palette di sistema per i testi (Nero su Trasparente)
-static const u16 sQuestMenuTextPalette[] = {
-    0x7FFF, // 0: Trasparente
-    0x0000, // 1: Nero (Testo)
-    0x318C, // 2: Grigio (Ombra)
-    0x7FFF, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
-};
+// Palette standard: index 0=trasparente, 1=bianco (lo sovrascriviamo con nero), 3=grigio chiaro
+// Usiamo {0, WHITE(=nero), LIGHT_GRAY} per avere testo nero + ombra identica allo zaino
+static const u16 sBlackColor[] = {RGB_BLACK};
+static const u8 sQuestTextColor[3]   = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_WHITE, TEXT_COLOR_LIGHT_GRAY};
+static const u8 sQuestDetailColor[3] = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_WHITE, TEXT_COLOR_LIGHT_GRAY};
+
+#define WIN_QUESTLIST   0
+#define WIN_QUESTDETAIL 1
+
+// Posizione del cursore nella lista (persiste tra aperture del menu)
+static u8 sQuestCursorPos;
+// Lista degli ID delle quest sbloccate
+static u8 sUnlockedQuestCount;
+static u8 sUnlockedQuestIds[SIDE_QUEST_COUNT];
 
 static void QuestMenu_MainCB(void);
 static void QuestMenu_VBlankCB(void);
+static void PrintQuestDetails(void);
 
-// 1. Definizione dei Background
+// BG0 = testo, BG1 = grafica di sfondo
 static const struct BgTemplate sQuestMenuBgTemplates[] =
 {
     {
-        .bg = 0, // Layer Testi
+        .bg = 0,
         .charBaseIndex = 0,
         .mapBaseIndex = 31,
         .screenSize = 0,
@@ -48,7 +57,7 @@ static const struct BgTemplate sQuestMenuBgTemplates[] =
         .baseTile = 0
     },
     {
-        .bg = 1, // Layer Diario (PNG 128x32)
+        .bg = 1,
         .charBaseIndex = 1,
         .mapBaseIndex = 30,
         .screenSize = 0,
@@ -58,40 +67,85 @@ static const struct BgTemplate sQuestMenuBgTemplates[] =
     }
 };
 
-// 2. Finestra centrata sulla grafica 128x32
+// WIN_QUESTLIST:   area beige, tile x=3..22, y=3..10 (4 slot da 2 righe ciascuno)
+// WIN_QUESTDETAIL: area blu,   tile x=6..28, y=13..18 (6 righe = 48px)
 static const struct WindowTemplate sQuestMenuWindowTemplates[] =
 {
-    {
+    { // WIN_QUESTLIST
+        // Inizia a col 1 (arrow fuori dalle linee che partono a col 3)
+        // Inizia a row 1 (testo 16px occupa rows 1-2, linea a row 3 -> testo sopra)
         .bg = 0,
-        .tilemapLeft = 2,   // Margine sinistro (2 tile = 16px)
-        .tilemapTop = 4,    // Margine superiore (regolalo per centrare il testo nel diario)
-        .width = 26,        // Occupa quasi tutto lo schermo in larghezza
-        .height = 12,       // Spazio per circa 6 missioni
+        .tilemapLeft = 1,
+        .tilemapTop = 2,
+        .width = 22,   // tile 1..22
+        .height = 9,   // tile 2..10, copre 4 slot
         .paletteNum = 15,
         .baseBlock = 1,
+    },
+    { // WIN_QUESTDETAIL  (baseBlock = 22*9+1 = 199)
+        .bg = 0,
+        .tilemapLeft = 6,
+        .tilemapTop = 13,
+        .width = 23,   // tile 6..28
+        .height = 6,   // tile 13..18, 48px
+        .paletteNum = 15,
+        .baseBlock = 199,
     },
     DUMMY_WIN_TEMPLATE
 };
 
-// 3. Funzione stampa: ora usa gSideQuests e CheckQuestUnlocked
+extern const u8 gText_SelectorArrow2[];
+
+// Popola sUnlockedQuestIds con le quest effettivamente sbloccate
+static void BuildUnlockedQuestList(void)
+{
+    u8 i;
+    sUnlockedQuestCount = 0;
+    for (i = 0; i < SIDE_QUEST_COUNT; i++)
+    {
+        if (CheckQuestUnlocked(i))
+            sUnlockedQuestIds[sUnlockedQuestCount++] = i;
+    }
+    // Evita cursore fuori range se alcune quest non sono più sbloccate
+    if (sUnlockedQuestCount > 0 && sQuestCursorPos >= sUnlockedQuestCount)
+        sQuestCursorPos = sUnlockedQuestCount - 1;
+}
+
+// Stampa la lista dei nomi con il cursore sulla quest selezionata
 void PrintQuestsList(void)
 {
     u8 i;
     u32 y = 0;
-    static const u8 color[3] = {0, 1, 2}; 
 
-    FillWindowPixelBuffer(0, PIXEL_FILL(0));
-
-    for (i = 0; i < SIDE_QUEST_COUNT; i++)
+    FillWindowPixelBuffer(WIN_QUESTLIST, PIXEL_FILL(0));
+    for (i = 0; i < sUnlockedQuestCount; i++)
     {
-        // Usa la funzione definita in quests.c
-        if (CheckQuestUnlocked(i))
-        {
-            AddTextPrinterParameterized4(0, 1, 0, y, 0, 0, color, -1, gSideQuests[i].name);
-            y += 16;
-        }
+        if (i == sQuestCursorPos)
+            AddTextPrinterParameterized4(WIN_QUESTLIST, FONT_NARROW, 4, y, 0, 0, sQuestTextColor, -1, gText_SelectorArrow2);
+        AddTextPrinterParameterized4(WIN_QUESTLIST, FONT_NARROW, 16, y, 0, 0, sQuestTextColor, -1, gSideQuests[sUnlockedQuestIds[i]].name);
+        y += 16;
     }
-    CopyWindowToVram(0, 3);
+    CopyWindowToVram(WIN_QUESTLIST, COPYWIN_FULL);
+}
+
+// Stampa i dettagli della quest attualmente selezionata
+static void PrintQuestDetails(void)
+{
+    const struct SideQuest *quest;
+
+    FillWindowPixelBuffer(WIN_QUESTDETAIL, PIXEL_FILL(0));
+    if (sUnlockedQuestCount == 0)
+    {
+        CopyWindowToVram(WIN_QUESTDETAIL, COPYWIN_FULL);
+        return;
+    }
+    quest = &gSideQuests[sUnlockedQuestIds[sQuestCursorPos]];
+    // FONT_SMALL (~8px) a 12px di spaziatura: 4 righe entro i 48px dell'area blu
+    AddTextPrinterParameterized4(WIN_QUESTDETAIL, FONT_SMALL, 0,  0, 0, 0, sQuestDetailColor, -1, quest->desc);
+    AddTextPrinterParameterized4(WIN_QUESTDETAIL, FONT_SMALL, 0, 12, 0, 0, sQuestDetailColor, -1, quest->poc);
+    AddTextPrinterParameterized4(WIN_QUESTDETAIL, FONT_SMALL, 0, 24, 0, 0, sQuestDetailColor, -1, quest->map);
+    AddTextPrinterParameterized4(WIN_QUESTDETAIL, FONT_SMALL, 0, 36, 0, 0, sQuestDetailColor, -1, quest->reward);
+    CopyWindowToVram(WIN_QUESTDETAIL, COPYWIN_FULL);
 }
 
 void QuestMenu_Init(void (*callback)(void))
@@ -109,19 +163,17 @@ static void QuestMenu_VBlankCB(void)
 
 static void QuestMenu_MainCB(void)
 {
-    // Queste chiamate aggiornano le componenti visive ogni frame.
-    // UpdatePaletteFade() è la chiave per far funzionare la sfumatura.
     RunTasks();
     AnimateSprites();
     BuildOamBuffer();
-    UpdatePaletteFade(); 
+    UpdatePaletteFade();
 
     switch (gMain.state)
     {
         case 0:
             SetVBlankCallback(NULL);
             SetGpuReg(REG_OFFSET_DISPCNT, 0);
-            
+
             SetGpuReg(REG_OFFSET_BG0HOFS, 0);
             SetGpuReg(REG_OFFSET_BG0VOFS, 0);
             SetGpuReg(REG_OFFSET_BG1HOFS, 0);
@@ -129,9 +181,9 @@ static void QuestMenu_MainCB(void)
 
             ResetBgs();
             InitBgsFromTemplates(0, sQuestMenuBgTemplates, ARRAY_COUNT(sQuestMenuBgTemplates));
-            SetBgTilemapBuffer(1, Alloc(0x800)); 
+            SetBgTilemapBuffer(1, Alloc(0x800));
             InitWindows(sQuestMenuWindowTemplates);
-            
+
             DmaClearLarge16(3, (void *)VRAM, VRAM_SIZE, 0x1000);
             DmaClear32(3, (void *)OAM, OAM_SIZE);
             DmaClear16(3, (void *)PLTT, PLTT_SIZE);
@@ -139,11 +191,14 @@ static void QuestMenu_MainCB(void)
             break;
 
         case 1:
-            LZ77UnCompVram(gQuestMenu_Gfx, (void *)(VRAM + 0x4000)); 
+            LZ77UnCompVram(gQuestMenu_Gfx, (void *)(VRAM + 0x4000));
             LZ77UnCompWram(gQuestMenu_Tilemap, GetBgTilemapBuffer(1));
-            
+
             LoadPalette(gQuestMenu_Pal, 0, 32);
-            LoadPalette(sQuestMenuTextPalette, 15 * 16, 32);
+            Menu_LoadStdPalAt(BG_PLTT_ID(15));
+            // Sovrascrive l'indice 1 con nero: testo nero, ombra = grigio chiaro standard
+            LoadPalette(sBlackColor, BG_PLTT_ID(15) + 1, sizeof(u16));
+            // Forza il buffer faded a nero prima che il VBlank lo trasferisca
             BlendPalettes(PALETTES_ALL, 16, RGB_BLACK);
 
             SetVBlankCallback(QuestMenu_VBlankCB);
@@ -152,52 +207,57 @@ static void QuestMenu_MainCB(void)
 
         case 2:
             CopyBgTilemapBufferToVram(1);
-            
-            // 1. Reset degli offset (fondamentale per evitare che il BG "salti")
-            SetGpuReg(REG_OFFSET_BG1VOFS, 0); 
-            SetGpuReg(REG_OFFSET_BG1HOFS, 0); 
 
-            PutWindowTilemap(0);
+            SetGpuReg(REG_OFFSET_BG1VOFS, 0);
+            SetGpuReg(REG_OFFSET_BG1HOFS, 0);
+
+            // Costruisce la lista delle quest sbloccate, poi stampa
+            BuildUnlockedQuestList();
+            PutWindowTilemap(WIN_QUESTLIST);
+            PutWindowTilemap(WIN_QUESTDETAIL);
             PrintQuestsList();
-            
-            // 2. FORZA TUTTO AL NERO prima di mostrare qualsiasi cosa
-            // Questo sovrascrive istantaneamente le vecchie palette dell'overworld
+            PrintQuestDetails();
+
             BlendPalettes(PALETTES_ALL, 16, RGB_BLACK);
-            
-            // 3. Ora puoi rendere visibili i BG e accendere il display.
-            // Poiché abbiamo usato BlendPalettes, vedrai solo NERO.
+
             ShowBg(0);
             ShowBg(1);
             SetGpuReg(REG_OFFSET_DISPCNT, DISPCNT_MODE_0 | DISPCNT_OBJ_1D_MAP | DISPCNT_BG0_ON | DISPCNT_BG1_ON | DISPCNT_OBJ_ON);
-            
-            // 4. Avvia il Fade-in (da Nero a Colori Normali)
+
             BeginNormalPaletteFade(PALETTES_ALL, 0, 16, 0, RGB_BLACK);
-            
             gMain.state++;
             break;
 
         case 3:
-            // Aspetta che il fade-in sia completato prima di passare allo stato degli input
             if (!gPaletteFade.active)
-            {
                 gMain.state++;
-            }
             break;
 
         case 4:
-            // Gestione Input
-            if (JOY_NEW(B_BUTTON))
+            // Navigazione lista
+            if (JOY_NEW(DPAD_UP) && sQuestCursorPos > 0)
             {
-                PlaySE(SE_SELECT); // Aggiungiamo il suono di sistema standard per l'uscita
-                
-                // Novità: Inizia la sfumatura da NORMALE a NERO (Fade Out)
+                PlaySE(SE_SELECT);
+                sQuestCursorPos--;
+                PrintQuestsList();
+                PrintQuestDetails();
+            }
+            else if (JOY_NEW(DPAD_DOWN) && sQuestCursorPos < sUnlockedQuestCount - 1)
+            {
+                PlaySE(SE_SELECT);
+                sQuestCursorPos++;
+                PrintQuestsList();
+                PrintQuestDetails();
+            }
+            else if (JOY_NEW(B_BUTTON))
+            {
+                PlaySE(SE_SELECT);
                 BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
                 gMain.state++;
             }
             break;
-            
+
         case 5:
-            // Novità: Aspettiamo che il Fade Out sia completamente nero
             if (!gPaletteFade.active)
             {
                 Free(GetBgTilemapBuffer(1));

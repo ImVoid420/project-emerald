@@ -13,6 +13,11 @@
 - La logica di unlock delle quest usa `CheckQuestUnlocked(i)` e `gSideQuests[]`
 - Grafica: `gQuestMenu_Gfx`, `gQuestMenu_Tilemap`, `gQuestMenu_Pal` (risorse esterne)
 
+## Tool disponibili
+- **Porymap** — editor visuale per mappe, eventi, connessioni, wild encounters
+- **Tilemap Studio** — editor per tilemap/grafica
+- **HexManiac Advance** — editor esadecimale per la ROM
+
 ## Note tecniche
 
 ### Palette fade (quest menu)
