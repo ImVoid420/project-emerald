@@ -19,6 +19,7 @@
 #include "constants/songs.h"
 #include "constants/rgb.h"
 #include "constants/characters.h"
+#include "string_util.h"
 
 // Risorse grafiche
 extern const u32 gQuestMenu_Gfx[];
@@ -29,7 +30,12 @@ extern const u32 gQuestMenu_Pal[];
 // Usiamo {0, WHITE(=nero), LIGHT_GRAY} per avere testo nero + ombra identica allo zaino
 static const u16 sBlackColor[] = {RGB_BLACK};
 static const u8 sQuestTextColor[3]   = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_WHITE, TEXT_COLOR_LIGHT_GRAY};
-static const u8 sQuestDetailColor[3] = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_WHITE, TEXT_COLOR_LIGHT_GRAY};
+// Detail: palette 14 = standard non modificata, indice 1 = bianco originale
+// Detail: palette 14, index 2 sovrascritto con nero per ombra nera su sfondo blu
+static const u8 sQuestDetailColor[3] = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_WHITE, TEXT_COLOR_DARK_GRAY};
+
+static const u8 sLabel_Info[]   = _("Info: ");
+static const u8 sLabel_Luogo[]  = _("Luogo: ");
 
 #define WIN_QUESTLIST   0
 #define WIN_QUESTDETAIL 1
@@ -82,13 +88,13 @@ static const struct WindowTemplate sQuestMenuWindowTemplates[] =
         .paletteNum = 15,
         .baseBlock = 1,
     },
-    { // WIN_QUESTDETAIL  (baseBlock = 22*9+1 = 199)
+    { // WIN_QUESTDETAIL  (baseBlock = 22*9+1 = 199, palette 14 separata per testo bianco)
         .bg = 0,
         .tilemapLeft = 6,
         .tilemapTop = 13,
-        .width = 23,   // tile 6..28
+        .width = 24,   // tile 6..29 (bordo destro riquadro blu)
         .height = 6,   // tile 13..18, 48px
-        .paletteNum = 15,
+        .paletteNum = 14,
         .baseBlock = 199,
     },
     DUMMY_WIN_TEMPLATE
@@ -140,11 +146,14 @@ static void PrintQuestDetails(void)
         return;
     }
     quest = &gSideQuests[sUnlockedQuestIds[sQuestCursorPos]];
-    // FONT_SMALL (~8px) a 12px di spaziatura: 4 righe entro i 48px dell'area blu
-    AddTextPrinterParameterized4(WIN_QUESTDETAIL, FONT_SMALL, 0,  0, 0, 0, sQuestDetailColor, -1, quest->desc);
-    AddTextPrinterParameterized4(WIN_QUESTDETAIL, FONT_SMALL, 0, 12, 0, 0, sQuestDetailColor, -1, quest->poc);
-    AddTextPrinterParameterized4(WIN_QUESTDETAIL, FONT_SMALL, 0, 24, 0, 0, sQuestDetailColor, -1, quest->map);
-    AddTextPrinterParameterized4(WIN_QUESTDETAIL, FONT_SMALL, 0, 36, 0, 0, sQuestDetailColor, -1, quest->reward);
+    // Luogo: [map]
+    StringCopy(gStringVar4, sLabel_Luogo);
+    StringAppend(gStringVar4, quest->map);
+    AddTextPrinterParameterized4(WIN_QUESTDETAIL, FONT_SMALL, 0,  0, 0, 0, sQuestDetailColor, -1, gStringVar4);
+    // Info: [desc]
+    StringCopy(gStringVar4, sLabel_Info);
+    StringAppend(gStringVar4, quest->desc);
+    AddTextPrinterParameterized4(WIN_QUESTDETAIL, FONT_SMALL, 0, 14, 0, 0, sQuestDetailColor, -1, gStringVar4);
     CopyWindowToVram(WIN_QUESTDETAIL, COPYWIN_FULL);
 }
 
@@ -195,9 +204,12 @@ static void QuestMenu_MainCB(void)
             LZ77UnCompWram(gQuestMenu_Tilemap, GetBgTilemapBuffer(1));
 
             LoadPalette(gQuestMenu_Pal, 0, 32);
+            // Slot 15: lista quest — testo nero (indice 1 sovrascritto), ombra grigio chiaro
             Menu_LoadStdPalAt(BG_PLTT_ID(15));
-            // Sovrascrive l'indice 1 con nero: testo nero, ombra = grigio chiaro standard
             LoadPalette(sBlackColor, BG_PLTT_ID(15) + 1, sizeof(u16));
+            // Slot 14: dettagli quest — testo bianco (1), ombra nera (2 sovrascritto)
+            Menu_LoadStdPalAt(BG_PLTT_ID(14));
+            LoadPalette(sBlackColor, BG_PLTT_ID(14) + 2, sizeof(u16));
             // Forza il buffer faded a nero prima che il VBlank lo trasferisca
             BlendPalettes(PALETTES_ALL, 16, RGB_BLACK);
 
