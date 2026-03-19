@@ -24,6 +24,15 @@ s8 GetSetQuestFlag(u8 quest, u8 caseId)
     case FLAG_SET_COMPLETED:
         gSaveBlock2Ptr->completedQuests[index] |= mask;
         return 1;
+    case FLAG_GET_REWARDED:
+        // REWARDED = completedQuests=1 AND unlockedQuests=0
+        return ((gSaveBlock2Ptr->completedQuests[index] & mask) != 0) &&
+               ((gSaveBlock2Ptr->unlockedQuests[index] & mask) == 0);
+    case FLAG_SET_REWARDED:
+        // Segna come premiata: mantieni completed=1, metti unlocked=0
+        gSaveBlock2Ptr->completedQuests[index] |= mask;
+        gSaveBlock2Ptr->unlockedQuests[index]  &= ~mask;
+        return 1;
     }
     return -1;
 }
@@ -32,11 +41,12 @@ s8 GetSetQuestFlag(u8 quest, u8 caseId)
 const struct SideQuest gSideQuests[SIDE_QUEST_COUNT] = 
 {
     [SIDE_QUEST_1] = {
-        .name = gText_SideQuestName_1,
-        .desc = gText_SideQuestDesc_1,
-        .poc = gText_SideQuestPOC_1,
-        .map = gText_SideQuestMap_1,
-        .reward = gText_SideQuestReward_1,
+        .name     = gText_SideQuestName_1,
+        .desc     = gText_SideQuestDesc_1,
+        .donedesc = gText_SideQuestDoneDesc_1,
+        .poc      = gText_SideQuestPOC_1,
+        .map      = gText_SideQuestMap_1,
+        .reward   = gText_SideQuestReward_1,
         .npcGraphicsId = OBJ_EVENT_GFX_FLANNERY,
     },
 };
@@ -49,4 +59,9 @@ bool8 CheckQuestUnlocked(u8 questId)
 bool8 CheckQuestCompleted(u8 questId)
 {
     return GetSetQuestFlag(questId, FLAG_GET_COMPLETED) == 1;
+}
+
+bool8 CheckQuestRewarded(u8 questId)
+{
+    return GetSetQuestFlag(questId, FLAG_GET_REWARDED) == 1;
 }

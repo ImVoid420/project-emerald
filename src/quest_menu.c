@@ -31,20 +31,32 @@ extern const u32 gQuestMenu_Pal[];
 
 // Palette standard: index 0=trasparente, 1=bianco (lo sovrascriviamo con nero), 3=grigio chiaro
 // Usiamo {0, WHITE(=nero), LIGHT_GRAY} per avere testo nero + ombra identica allo zaino
-static const u16 sBlackColor[] = {RGB_BLACK};
-static const u8 sQuestTextColor[3]   = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_WHITE, TEXT_COLOR_LIGHT_GRAY};
-// Detail: palette 14 = standard non modificata, indice 1 = bianco originale
-// Detail: palette 14, index 2 sovrascritto con nero per ombra nera su sfondo blu
+static const u16 sBlackColor[]  = {RGB_BLACK};
+static const u16 sRedColor[]    = {RGB(28, 4, 4)};
+static const u16 sGreenColor[]  = {RGB(4, 22, 4)};
+// Palette 15: testo lista quest — ombra identica per tutti (TEXT_COLOR_LIGHT_GRAY = idx 3)
+static const u8 sQuestTextColor[3]        = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_WHITE,       TEXT_COLOR_LIGHT_GRAY};
+static const u8 sQuestStatusRedColor[3]   = {TEXT_COLOR_TRANSPARENT, 4,                      TEXT_COLOR_LIGHT_GRAY};
+static const u8 sQuestStatusGreenColor[3] = {TEXT_COLOR_TRANSPARENT, 5,                      TEXT_COLOR_LIGHT_GRAY};
+// Palette 14: testo dettagli quest (bianco su sfondo blu)
 static const u8 sQuestDetailColor[3] = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_WHITE, TEXT_COLOR_DARK_GRAY};
 
-static const u8 sLabel_Info[]   = _("Info: ");
-static const u8 sLabel_Luogo[]  = _("Luogo: ");
+static const u8 sLabel_Luogo[] = _("Luogo: ");
 
 #define WIN_QUESTLIST   0
 #define WIN_QUESTDETAIL 1
+#define WIN_HEADER      2
+
+#define FILTER_ALL    0
+#define FILTER_ACTIVE 1
+#define FILTER_REWARD 2
+#define FILTER_DONE   3
+#define FILTER_COUNT  4
 
 // Posizione del cursore nella lista (persiste tra aperture del menu)
 static u8 sQuestCursorPos;
+// Filtro corrente (persiste tra aperture del menu)
+static u8 sFilterMode;
 // Lista degli ID delle quest sbloccate
 static u8 sUnlockedQuestCount;
 static u8 sUnlockedQuestIds[SIDE_QUEST_COUNT];
@@ -55,6 +67,7 @@ static void QuestMenu_MainCB(void);
 static void QuestMenu_VBlankCB(void);
 static void PrintQuestDetails(void);
 static void ShowNpcSprite(void);
+static void PrintCategoryHeader(void);
 
 // BG0 = testo, BG1 = grafica di sfondo
 static const struct BgTemplate sQuestMenuBgTemplates[] =
@@ -103,38 +116,93 @@ static const struct WindowTemplate sQuestMenuWindowTemplates[] =
         .paletteNum = 14,
         .baseBlock = 199,
     },
+    { // WIN_HEADER (baseBlock = 199+144 = 343, righe 0-1 per categoria corrente)
+        .bg = 0,
+        .tilemapLeft = 1,
+        .tilemapTop = 0,
+        .width = 28,
+        .height = 2,
+        .paletteNum = 15,
+        .baseBlock = 343,
+    },
     DUMMY_WIN_TEMPLATE
 };
 
 extern const u8 gText_SelectorArrow2[];
 
-// Popola sUnlockedQuestIds con le quest effettivamente sbloccate
+static bool8 QuestMatchesFilter(u8 questId)
+{
+    bool8 active = CheckQuestUnlocked(questId) && !CheckQuestCompleted(questId);
+    bool8 reward = CheckQuestUnlocked(questId) && CheckQuestCompleted(questId);
+    bool8 done   = CheckQuestRewarded(questId);
+    switch (sFilterMode)
+    {
+    case FILTER_ALL:    return active || reward || done;
+    case FILTER_ACTIVE: return active;
+    case FILTER_REWARD: return reward;
+    case FILTER_DONE:   return done;
+    }
+    return FALSE;
+}
+
+// Popola sUnlockedQuestIds applicando il filtro corrente
 static void BuildUnlockedQuestList(void)
 {
     u8 i;
     sUnlockedQuestCount = 0;
     for (i = 0; i < SIDE_QUEST_COUNT; i++)
     {
-        if (CheckQuestUnlocked(i))
+        if (QuestMatchesFilter(i))
             sUnlockedQuestIds[sUnlockedQuestCount++] = i;
     }
-    // Evita cursore fuori range se alcune quest non sono più sbloccate
-    if (sUnlockedQuestCount > 0 && sQuestCursorPos >= sUnlockedQuestCount)
-        sQuestCursorPos = sUnlockedQuestCount - 1;
+    // Evita cursore fuori range
+    if (sQuestCursorPos >= sUnlockedQuestCount)
+        sQuestCursorPos = sUnlockedQuestCount > 0 ? sUnlockedQuestCount - 1 : 0;
 }
 
-// Stampa la lista dei nomi con il cursore sulla quest selezionata
+static const u8 sText_InCorso[]    = _("in corso");
+static const u8 sText_Completata[] = _("completata");
+
+// Stampa la lista dei nomi con cursore e stato colorato allineato a destra
 void PrintQuestsList(void)
 {
     u8 i;
     u32 y = 0;
+    u8 questId;
+    const u8 *statusText;
+    const u8 *statusColor;
+    s32 statusX;
+    // Larghezza finestra WIN_QUESTLIST in pixel (22 tile * 8px)
+    const s32 winWidth = 22 * 8;
 
     FillWindowPixelBuffer(WIN_QUESTLIST, PIXEL_FILL(0));
     for (i = 0; i < sUnlockedQuestCount; i++)
     {
+        questId = sUnlockedQuestIds[i];
+
         if (i == sQuestCursorPos)
             AddTextPrinterParameterized4(WIN_QUESTLIST, FONT_NARROW, 4, y, 0, 0, sQuestTextColor, -1, gText_SelectorArrow2);
-        AddTextPrinterParameterized4(WIN_QUESTLIST, FONT_NARROW, 16, y, 0, 0, sQuestTextColor, -1, gSideQuests[sUnlockedQuestIds[i]].name);
+        AddTextPrinterParameterized4(WIN_QUESTLIST, FONT_NARROW, 16, y, 0, 0, sQuestTextColor, -1, gSideQuests[questId].name);
+
+        // Etichetta stato a destra
+        if (CheckQuestRewarded(questId))
+        {
+            statusText  = sText_Completata;
+            statusColor = sQuestStatusGreenColor;
+        }
+        else if (CheckQuestCompleted(questId))
+        {
+            statusText  = sText_Completata;
+            statusColor = sQuestStatusRedColor;
+        }
+        else
+        {
+            statusText  = sText_InCorso;
+            statusColor = sQuestTextColor;
+        }
+        statusX = winWidth - GetStringWidth(FONT_NARROW, statusText, 0);
+        AddTextPrinterParameterized4(WIN_QUESTLIST, FONT_NARROW, statusX, y, 0, 0, statusColor, -1, statusText);
+
         y += 16;
     }
     CopyWindowToVram(WIN_QUESTLIST, COPYWIN_FULL);
@@ -156,10 +224,11 @@ static void PrintQuestDetails(void)
     StringCopy(gStringVar4, sLabel_Luogo);
     StringAppend(gStringVar4, quest->map);
     AddTextPrinterParameterized4(WIN_QUESTDETAIL, FONT_SMALL, 0,  0, 0, 0, sQuestDetailColor, -1, gStringVar4);
-    // Info: [desc]
-    StringCopy(gStringVar4, sLabel_Info);
-    StringAppend(gStringVar4, quest->desc);
-    AddTextPrinterParameterized4(WIN_QUESTDETAIL, FONT_SMALL, 0, 14, 0, 0, sQuestDetailColor, -1, gStringVar4);
+    // Descrizione senza label
+    if (CheckQuestCompleted(sUnlockedQuestIds[sQuestCursorPos]))
+        AddTextPrinterParameterized4(WIN_QUESTDETAIL, FONT_SMALL, 0, 14, 0, 0, sQuestDetailColor, -1, quest->donedesc);
+    else
+        AddTextPrinterParameterized4(WIN_QUESTDETAIL, FONT_SMALL, 0, 14, 0, 0, sQuestDetailColor, -1, quest->desc);
     CopyWindowToVram(WIN_QUESTDETAIL, COPYWIN_FULL);
 }
 
@@ -183,6 +252,26 @@ static void ShowNpcSprite(void)
         gSprites[sNpcSpriteId].oam.priority = 0;
         StartSpriteAnim(&gSprites[sNpcSpriteId], ANIM_STD_FACE_SOUTH);
     }
+}
+
+static const u8 sText_FilterAll[]    = _("Tutte le missioni");
+static const u8 sText_FilterActive[] = _("In corso");
+static const u8 sText_FilterReward[] = _("Premio disponibile");
+static const u8 sText_FilterDone[]   = _("Completate");
+static const u8 sText_RHint[]        = _("R: Tipo");
+
+static void PrintCategoryHeader(void)
+{
+    static const u8 *const sFilterLabels[FILTER_COUNT] = {
+        sText_FilterAll, sText_FilterActive, sText_FilterReward, sText_FilterDone,
+    };
+    const u8 *label = sFilterLabels[sFilterMode];
+    s32 hintX = 28 * 8 - GetStringWidth(FONT_NARROW, sText_RHint, 0);
+
+    FillWindowPixelBuffer(WIN_HEADER, PIXEL_FILL(0));
+    AddTextPrinterParameterized4(WIN_HEADER, FONT_NARROW, 0, 2, 0, 0, sQuestTextColor, -1, label);
+    AddTextPrinterParameterized4(WIN_HEADER, FONT_NARROW, hintX, 2, 0, 0, sQuestTextColor, -1, sText_RHint);
+    CopyWindowToVram(WIN_HEADER, COPYWIN_FULL);
 }
 
 void QuestMenu_Init(void (*callback)(void))
@@ -234,9 +323,11 @@ static void QuestMenu_MainCB(void)
             LZ77UnCompWram(gQuestMenu_Tilemap, GetBgTilemapBuffer(1));
 
             LoadPalette(gQuestMenu_Pal, 0, 32);
-            // Slot 15: lista quest — testo nero (indice 1 sovrascritto), ombra grigio chiaro
+            // Slot 15: lista quest — testo nero (idx 1), rosso (idx 4), verde (idx 5), ombra scura (idx 6)
             Menu_LoadStdPalAt(BG_PLTT_ID(15));
-            LoadPalette(sBlackColor, BG_PLTT_ID(15) + 1, sizeof(u16));
+            LoadPalette(sBlackColor,  BG_PLTT_ID(15) + 1, sizeof(u16));
+            LoadPalette(sRedColor,   BG_PLTT_ID(15) + 4, sizeof(u16));
+            LoadPalette(sGreenColor, BG_PLTT_ID(15) + 5, sizeof(u16));
             // Slot 14: dettagli quest — testo bianco (1), ombra nera (2 sovrascritto)
             Menu_LoadStdPalAt(BG_PLTT_ID(14));
             LoadPalette(sBlackColor, BG_PLTT_ID(14) + 2, sizeof(u16));
@@ -257,6 +348,8 @@ static void QuestMenu_MainCB(void)
             BuildUnlockedQuestList();
             PutWindowTilemap(WIN_QUESTLIST);
             PutWindowTilemap(WIN_QUESTDETAIL);
+            PutWindowTilemap(WIN_HEADER);
+            PrintCategoryHeader();
             PrintQuestsList();
             PrintQuestDetails();
             ShowNpcSprite();
@@ -290,6 +383,17 @@ static void QuestMenu_MainCB(void)
             {
                 PlaySE(SE_SELECT);
                 sQuestCursorPos++;
+                PrintQuestsList();
+                PrintQuestDetails();
+                ShowNpcSprite();
+            }
+            else if (JOY_NEW(R_BUTTON))
+            {
+                PlaySE(SE_SELECT);
+                sFilterMode = (sFilterMode + 1) % FILTER_COUNT;
+                sQuestCursorPos = 0;
+                BuildUnlockedQuestList();
+                PrintCategoryHeader();
                 PrintQuestsList();
                 PrintQuestDetails();
                 ShowNpcSprite();

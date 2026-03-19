@@ -3318,15 +3318,26 @@ bool8 ScrCmd_completequest(struct ScriptContext *ctx)
 }
 
 // Comando per controllare lo stato di una missione (ritorna il risultato in VAR_RESULT)
+// mode: 0=attiva, 1=obiettivo completato (premio non ritirato), 2=premio ritirato
 bool8 ScrCmd_checkquest(struct ScriptContext *ctx)
 {
     u8 questId = ScriptReadByte(ctx);
-    u8 mode = ScriptReadByte(ctx); // 0 per sbloccata, 1 per completata
-    
+    u8 mode = ScriptReadByte(ctx);
+
     if (mode == 0)
         gSpecialVar_Result = GetSetQuestFlag(questId, FLAG_GET_UNLOCKED);
-    else
+    else if (mode == 1)
         gSpecialVar_Result = GetSetQuestFlag(questId, FLAG_GET_COMPLETED);
-        
+    else
+        gSpecialVar_Result = GetSetQuestFlag(questId, FLAG_GET_REWARDED);
+
+    return FALSE;
+}
+
+// Comando per segnare una missione come completata con premio ritirato
+bool8 ScrCmd_rewardquest(struct ScriptContext *ctx)
+{
+    u8 questId = ScriptReadByte(ctx);
+    GetSetQuestFlag(questId, FLAG_SET_REWARDED);
     return FALSE;
 }

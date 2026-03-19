@@ -256,6 +256,7 @@ gScriptCmdTable::
 	script_cmd_table_entry SCR_OP_START_QUEST           		ScrCmd_startquest,                  requests_effects=1  @ 0xe7
 	script_cmd_table_entry SCR_OP_COMPLETE_QUEST         		ScrCmd_completequest,               requests_effects=1  @ 0xe8
 	script_cmd_table_entry SCR_OP_CHECK_QUEST           		ScrCmd_checkquest,                  requests_effects=1  @ 0xe9
+	script_cmd_table_entry SCR_OP_REWARD_QUEST          		ScrCmd_rewardquest,                 requests_effects=1  @ 0xea
 
 	.if ALLOCATE_SCRIPT_CMD_TABLE
 gScriptCmdTableEnd::

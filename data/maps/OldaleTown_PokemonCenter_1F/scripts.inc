@@ -63,35 +63,50 @@ OldaleTown_PokemonCenter_1F_Text_TradedInWirelessClub:
 OldaleCenter_QuestNPC::
 	lock
 	faceplayer
-	checkquest SIDE_QUEST_1, 1      @ Controlla se la missione è finita
+	@ Premio già ritirato → missione conclusa
+	checkquest SIDE_QUEST_1, 2
 	compare VAR_RESULT, 1
-	goto_if_eq OldaleCenter_QuestFinished
-	
-	checkquest SIDE_QUEST_1, 0      @ Controlla se la missione è attiva
+	goto_if_eq OldaleCenter_QuestDone
+	@ Obiettivo completato, ritira il premio
+	checkquest SIDE_QUEST_1, 1
 	compare VAR_RESULT, 1
-	goto_if_eq OldaleCenter_CompleteQuest
-	
-	startquest SIDE_QUEST_1         @ Se non è nessuna delle due, inizia
+	goto_if_eq OldaleCenter_RewardQuest
+	@ Quest attiva → non ancora completata
+	checkquest SIDE_QUEST_1, 0
+	compare VAR_RESULT, 1
+	goto_if_eq OldaleCenter_QuestActive
+	@ Non ancora iniziata → dai la quest
+	startquest SIDE_QUEST_1
 	msgbox OldaleCenter_Text_Started, MSGBOX_DEFAULT
 	release
 	end
 
-OldaleCenter_QuestFinished:
+OldaleCenter_QuestActive:
+	@ Qui l'obiettivo viene raggiunto (in questo test parli di nuovo con Flannery)
+	completequest SIDE_QUEST_1
+	msgbox OldaleCenter_Text_ObjectiveDone, MSGBOX_DEFAULT
+	release
+	end
+
+OldaleCenter_RewardQuest:
+	rewardquest SIDE_QUEST_1
+	msgbox OldaleCenter_Text_Rewarded, MSGBOX_DEFAULT
+	release
+	end
+
+OldaleCenter_QuestDone:
 	msgbox OldaleCenter_Text_Finished, MSGBOX_DEFAULT
 	release
 	end
 
-OldaleCenter_CompleteQuest:
-	completequest SIDE_QUEST_1
-	msgbox OldaleCenter_Text_Completed, MSGBOX_DEFAULT
-	release
-	end
-
 OldaleCenter_Text_Started:
-	.string "Ho iniziato la missione SIDE_QUEST_1!$"
+	.string "Ciao! Ho una missione per te.\nVieni a parlarmi ancora!$"
 
-OldaleCenter_Text_Completed:
-	.string "Bravo! Hai completato la missione!$"
+OldaleCenter_Text_ObjectiveDone:
+	.string "Ottimo! Ora torna da me\nper ritirare il premio.$"
+
+OldaleCenter_Text_Rewarded:
+	.string "Ecco il tuo premio!\nGrazie per l'aiuto.$"
 
 OldaleCenter_Text_Finished:
-	.string "Grazie ancora per l'aiuto.$"
+	.string "Grazie ancora per l'aiuto!$"

@@ -2424,6 +2424,7 @@ extern const u8 gText_SideQuestName_2[];
 
 // Side Quest Descriptions
 extern const u8 gText_SideQuestDesc_1[];
+extern const u8 gText_SideQuestDoneDesc_1[];
 extern const u8 gText_SideQuestDesc_2[];
 extern const u8 gText_SideQuestDesc_3[];
 extern const u8 gText_SideQuestDesc_4[];

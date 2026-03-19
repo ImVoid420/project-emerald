@@ -2728,12 +2728,18 @@
 	.byte \quest
 	.endm
 
-	@ Controlla se una missione è sbloccata (0) o completata (1)
+	@ Controlla lo stato di una missione: 0=attiva, 1=obiettivo completato, 2=premio ritirato
 	@ Il risultato va in VAR_RESULT
 	.macro checkquest quest:req, mode:req
 	.byte 0xe9
 	.byte \quest
 	.byte \mode
+	.endm
+
+	@ Segna una missione come completata con premio ritirato
+	.macro rewardquest quest:req
+	.byte 0xea
+	.byte \quest
 	.endm
 
 	.equ SIDE_QUEST_1, 0
