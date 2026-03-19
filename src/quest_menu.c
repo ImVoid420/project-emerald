@@ -15,6 +15,9 @@
 #include "window.h"
 #include "text.h"
 #include "quests.h" // Importante per la struttura SideQuest
+#include "sound.h"
+#include "constants/songs.h"
+#include "constants/rgb.h"
 
 // Risorse grafiche
 extern const u32 gQuestMenu_Gfx[];      
@@ -106,13 +109,19 @@ static void QuestMenu_VBlankCB(void)
 
 static void QuestMenu_MainCB(void)
 {
+    // Queste chiamate aggiornano le componenti visive ogni frame.
+    // UpdatePaletteFade() è la chiave per far funzionare la sfumatura.
+    RunTasks();
+    AnimateSprites();
+    BuildOamBuffer();
+    UpdatePaletteFade(); 
+
     switch (gMain.state)
     {
         case 0:
             SetVBlankCallback(NULL);
             SetGpuReg(REG_OFFSET_DISPCNT, 0);
             
-            // RESET TOTALE OFFSET: La tilemap (.bin) gestisce la posizione dei tile
             SetGpuReg(REG_OFFSET_BG0HOFS, 0);
             SetGpuReg(REG_OFFSET_BG0VOFS, 0);
             SetGpuReg(REG_OFFSET_BG1HOFS, 0);
@@ -130,13 +139,13 @@ static void QuestMenu_MainCB(void)
             break;
 
         case 1:
-            // Caricamento Tileset e Tilemap
             LZ77UnCompVram(gQuestMenu_Gfx, (void *)(VRAM + 0x4000)); 
             LZ77UnCompWram(gQuestMenu_Tilemap, GetBgTilemapBuffer(1));
             
-            LoadPalette(gQuestMenu_Pal, 0, 32); 
+            LoadPalette(gQuestMenu_Pal, 0, 32);
             LoadPalette(sQuestMenuTextPalette, 15 * 16, 32);
-            
+            BlendPalettes(PALETTES_ALL, 16, RGB_BLACK);
+
             SetVBlankCallback(QuestMenu_VBlankCB);
             gMain.state++;
             break;
@@ -144,23 +153,52 @@ static void QuestMenu_MainCB(void)
         case 2:
             CopyBgTilemapBufferToVram(1);
             
-            // Assicuriamoci che gli offset rimangano a 0 prima di mostrare i BG
+            // 1. Reset degli offset (fondamentale per evitare che il BG "salti")
             SetGpuReg(REG_OFFSET_BG1VOFS, 0); 
             SetGpuReg(REG_OFFSET_BG1HOFS, 0); 
 
             PutWindowTilemap(0);
             PrintQuestsList();
             
+            // 2. FORZA TUTTO AL NERO prima di mostrare qualsiasi cosa
+            // Questo sovrascrive istantaneamente le vecchie palette dell'overworld
+            BlendPalettes(PALETTES_ALL, 16, RGB_BLACK);
+            
+            // 3. Ora puoi rendere visibili i BG e accendere il display.
+            // Poiché abbiamo usato BlendPalettes, vedrai solo NERO.
             ShowBg(0);
             ShowBg(1);
-            
-            // Attivazione display
             SetGpuReg(REG_OFFSET_DISPCNT, DISPCNT_MODE_0 | DISPCNT_OBJ_1D_MAP | DISPCNT_BG0_ON | DISPCNT_BG1_ON | DISPCNT_OBJ_ON);
+            
+            // 4. Avvia il Fade-in (da Nero a Colori Normali)
+            BeginNormalPaletteFade(PALETTES_ALL, 0, 16, 0, RGB_BLACK);
+            
             gMain.state++;
             break;
 
         case 3:
+            // Aspetta che il fade-in sia completato prima di passare allo stato degli input
+            if (!gPaletteFade.active)
+            {
+                gMain.state++;
+            }
+            break;
+
+        case 4:
+            // Gestione Input
             if (JOY_NEW(B_BUTTON))
+            {
+                PlaySE(SE_SELECT); // Aggiungiamo il suono di sistema standard per l'uscita
+                
+                // Novità: Inizia la sfumatura da NORMALE a NERO (Fade Out)
+                BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
+                gMain.state++;
+            }
+            break;
+            
+        case 5:
+            // Novità: Aspettiamo che il Fade Out sia completamente nero
+            if (!gPaletteFade.active)
             {
                 Free(GetBgTilemapBuffer(1));
                 FreeAllWindowBuffers();
