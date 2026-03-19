@@ -3,6 +3,7 @@
 #include "strings.h"
 #include "item_icon.h"
 #include "sprite.h"
+#include "constants/event_objects.h"
 
 // Logica per gestire le missioni (Sbloccate/Completate)
 s8 GetSetQuestFlag(u8 quest, u8 caseId)
@@ -36,6 +37,7 @@ const struct SideQuest gSideQuests[SIDE_QUEST_COUNT] =
         .poc = gText_SideQuestPOC_1,
         .map = gText_SideQuestMap_1,
         .reward = gText_SideQuestReward_1,
+        .npcGraphicsId = OBJ_EVENT_GFX_FLANNERY,
     },
 };
 

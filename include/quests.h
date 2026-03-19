@@ -12,13 +12,14 @@ enum QuestCases
     FLAG_SET_COMPLETED,
 };
 
-struct SideQuest 
+struct SideQuest
 {
     const u8* name;
     const u8* desc;
     const u8* poc;
     const u8* map;
     const u8* reward;
+    u16 npcGraphicsId;
 };
 
 extern const struct SideQuest gSideQuests[SIDE_QUEST_COUNT];

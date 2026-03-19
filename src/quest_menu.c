@@ -20,6 +20,9 @@
 #include "constants/rgb.h"
 #include "constants/characters.h"
 #include "string_util.h"
+#include "event_object_movement.h"
+#include "constants/event_object_movement.h"
+#include "sprite.h"
 
 // Risorse grafiche
 extern const u32 gQuestMenu_Gfx[];
@@ -45,10 +48,13 @@ static u8 sQuestCursorPos;
 // Lista degli ID delle quest sbloccate
 static u8 sUnlockedQuestCount;
 static u8 sUnlockedQuestIds[SIDE_QUEST_COUNT];
+// ID dello sprite NPC attualmente visualizzato nel riquadro bianco
+static u8 sNpcSpriteId;
 
 static void QuestMenu_MainCB(void);
 static void QuestMenu_VBlankCB(void);
 static void PrintQuestDetails(void);
+static void ShowNpcSprite(void);
 
 // BG0 = testo, BG1 = grafica di sfondo
 static const struct BgTemplate sQuestMenuBgTemplates[] =
@@ -157,6 +163,28 @@ static void PrintQuestDetails(void)
     CopyWindowToVram(WIN_QUESTDETAIL, COPYWIN_FULL);
 }
 
+// Mostra lo sprite NPC della quest selezionata nel riquadro bianco (tile x=1-3, y=15-18)
+// Centro del riquadro: pixel x=20, y=136
+static void ShowNpcSprite(void)
+{
+    if (sNpcSpriteId < MAX_SPRITES)
+    {
+        DestroySprite(&gSprites[sNpcSpriteId]);
+        sNpcSpriteId = MAX_SPRITES;
+    }
+    if (sUnlockedQuestCount == 0)
+        return;
+    sNpcSpriteId = CreateObjectGraphicsSprite(
+        gSideQuests[sUnlockedQuestIds[sQuestCursorPos]].npcGraphicsId,
+        SpriteCallbackDummy,
+        18, 132, 0);
+    if (sNpcSpriteId < MAX_SPRITES)
+    {
+        gSprites[sNpcSpriteId].oam.priority = 0;
+        StartSpriteAnim(&gSprites[sNpcSpriteId], ANIM_STD_FACE_SOUTH);
+    }
+}
+
 void QuestMenu_Init(void (*callback)(void))
 {
     SetVBlankCallback(NULL);
@@ -196,6 +224,8 @@ static void QuestMenu_MainCB(void)
             DmaClearLarge16(3, (void *)VRAM, VRAM_SIZE, 0x1000);
             DmaClear32(3, (void *)OAM, OAM_SIZE);
             DmaClear16(3, (void *)PLTT, PLTT_SIZE);
+            ResetSpriteData();
+            sNpcSpriteId = MAX_SPRITES;
             gMain.state++;
             break;
 
@@ -229,6 +259,7 @@ static void QuestMenu_MainCB(void)
             PutWindowTilemap(WIN_QUESTDETAIL);
             PrintQuestsList();
             PrintQuestDetails();
+            ShowNpcSprite();
 
             BlendPalettes(PALETTES_ALL, 16, RGB_BLACK);
 
@@ -253,6 +284,7 @@ static void QuestMenu_MainCB(void)
                 sQuestCursorPos--;
                 PrintQuestsList();
                 PrintQuestDetails();
+                ShowNpcSprite();
             }
             else if (JOY_NEW(DPAD_DOWN) && sQuestCursorPos < sUnlockedQuestCount - 1)
             {
@@ -260,6 +292,7 @@ static void QuestMenu_MainCB(void)
                 sQuestCursorPos++;
                 PrintQuestsList();
                 PrintQuestDetails();
+                ShowNpcSprite();
             }
             else if (JOY_NEW(B_BUTTON))
             {
@@ -272,6 +305,8 @@ static void QuestMenu_MainCB(void)
         case 5:
             if (!gPaletteFade.active)
             {
+                if (sNpcSpriteId < MAX_SPRITES)
+                    DestroySprite(&gSprites[sNpcSpriteId]);
                 Free(GetBgTilemapBuffer(1));
                 FreeAllWindowBuffers();
                 SetMainCallback2(CB2_ReturnToFieldWithOpenMenu);
