@@ -6271,15 +6271,33 @@ static void HandleTargetSpeciesPrintText(u32 targetSpecies, u32 base_x, u32 base
     PrintInfoScreenTextSmall(gStringVar3, fontId, base_x, base_y + base_y_offset*base_i); //evolution mon name
 }
 
+// Palette OBJ tutta nera: colore 0 = trasparente (sprite OBJ), 1-15 = nero puro
+static const u16 sBlackMonIconPal[16] = {0};
+
 static void HandleTargetSpeciesPrintIcon(u8 taskId, u16 targetSpecies, u8 base_i, u8 iterations)
 {
     u32 personality = GetPokedexMonPersonality(targetSpecies);
+    bool32 seen = GetSetPokedexFlag(SpeciesToNationalPokedexNum(targetSpecies), FLAG_GET_SEEN);
     LoadMonIconPalettePersonality(targetSpecies, personality); //Loads pallete for current mon
     if (iterations > 6) // Print icons closer to each other if there are many evolutions
         gTasks[taskId].data[4+base_i] = CreateMonIcon(targetSpecies, SpriteCB_MonIcon, 45 + 26*base_i, 31, 4, personality);
     else
         gTasks[taskId].data[4+base_i] = CreateMonIcon(targetSpecies, SpriteCB_MonIcon, 50 + 32*base_i, 31, 4, personality);
     gSprites[gTasks[taskId].data[4+base_i]].oam.priority = 0;
+    if (!seen && HGSS_HIDE_UNSEEN_EVOLUTION_NAMES)
+    {
+        // Palette condivisa tra icone stessa famiglia: alloca uno slot dedicato
+        // così non si rende nera anche l'icona del pokemon di base
+        u16 silhouetteTag = 0xFFF0 + base_i;
+        u8 palNum;
+        FreeSpritePaletteByTag(silhouetteTag);
+        palNum = AllocSpritePalette(silhouetteTag);
+        if (palNum != 0xFF)
+        {
+            LoadPalette(sBlackMonIconPal, OBJ_PLTT_ID(palNum), PLTT_SIZE_4BPP);
+            gSprites[gTasks[taskId].data[4+base_i]].oam.paletteNum = palNum;
+        }
+    }
 }
 
 static void CreateCaughtBallEvolutionScreen(u16 targetSpecies, u8 x, u8 y, u16 unused)
@@ -6322,6 +6340,8 @@ static void HandlePreEvolutionSpeciesPrint(u8 taskId, u16 preSpecies, u16 specie
         LoadMonIconPalettePersonality(preSpecies, personality); //Loads pallete for current mon
         gTasks[taskId].data[4+base_i] = CreateMonIcon(preSpecies, SpriteCB_MonIcon, 18 + 32*base_i, 31, 4, personality); //Create pokemon sprite
         gSprites[gTasks[taskId].data[4+base_i]].oam.priority = 0;
+        if (!seen && HGSS_HIDE_UNSEEN_EVOLUTION_NAMES)
+            LoadPalette(sSizeScreenSilhouette_Pal, OBJ_PLTT_ID(gSprites[gTasks[taskId].data[4+base_i]].oam.paletteNum), PLTT_SIZE_4BPP);
     }
 }
 
@@ -6573,17 +6593,7 @@ static void PrintEvolutionTargetSpeciesAndMethod(u8 taskId, u16 species, u8 dept
                 break;
             if (alreadyPrintedIcons[j] == SPECIES_NONE)
             {
-                // --- MODIFICA QUI ---
-                u16 speciesToPrintIcon = targetSpecies;
-                
-                // Se dobbiamo nascondere i nomi non visti, nascondiamo anche l'icona
-                if (HGSS_HIDE_UNSEEN_EVOLUTION_NAMES && !GetSetPokedexFlag(SpeciesToNationalPokedexNum(targetSpecies), FLAG_GET_SEEN))
-                {
-                    speciesToPrintIcon = SPECIES_NONE; // Visualizzerà un'icona vuota o un punto di domanda
-                }
-
-                HandleTargetSpeciesPrintIcon(taskId, speciesToPrintIcon, *icon_depth_i, times);
-                // ----------------------
+                HandleTargetSpeciesPrintIcon(taskId, targetSpecies, *icon_depth_i, times);
                 
                 alreadyPrintedIcons[j] = targetSpecies;
                 (*icon_depth_i)++;
