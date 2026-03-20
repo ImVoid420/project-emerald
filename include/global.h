@@ -924,6 +924,12 @@ typedef union // 3b58
     u8 filler[0x40];
 } LilycoveLady;
 
+struct Pokevial
+{
+    u8 Size : 4;
+    u8 Dose : 4;
+};
+
 struct WaldaPhrase
 {
     u16 colors[2]; // Background, foreground.
@@ -1178,6 +1184,7 @@ struct SaveBlock1
     /*0x3???*/ struct TrainerHillSave trainerHill;
 #endif //FREE_TRAINER_HILL
     /*0x3???*/ struct WaldaPhrase waldaPhrase;
+    /*0x3???*/ struct Pokevial pokevial;
     // sizeof: 0x3???
 };
 

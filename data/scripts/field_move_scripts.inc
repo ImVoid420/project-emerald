@@ -475,30 +475,4 @@ Text_CantRockClimb:
     .string "The cliff is steep.\n"
     .string "A Pokémon may be able to climb it.$"
 
-EventScript_PokeVial::
-    lockall
-    compare 0x40F9, 0  @ Confronta il contenuto della variabile 0x40F9 con 0
-    goto_if_eq EventScript_PokeVial_NoCharges
-    
-    @ Se arriviamo qui, ci sono cariche
-    special HealPlayerParty
-    subvar 0x40F9, 1
-    buffernumberstring STR_VAR_1, 0x40F9 @ Nota: STR_VAR_1 è l'indice 0
-    
-    playfanfare MUS_HEAL
-    msgbox Text_VialUsed, MSGBOX_DEFAULT
-    waitfanfare
-    releaseall
-    end
-
-EventScript_PokeVial_NoCharges:
-    msgbox Text_VialEmpty, MSGBOX_DEFAULT
-    releaseall
-    end
-
-Text_VialUsed:
-    .string "Hai usato il PokéVial.\n"
-    .string "Cariche rimaste: {STR_VAR_1}.$"
-
-Text_VialEmpty:
-    .string "Il PokéVial è vuoto...$"
+@ EventScript_PokeVial rimosso: la logica è ora gestita in C da ItemUseOutOfBattle_PokeVial

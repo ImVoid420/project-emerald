@@ -49,6 +49,7 @@
 #include "party_menu.h"
 #include "player_pc.h"
 #include "pokemon.h"
+#include "pokevial.h"
 #include "pokemon_icon.h"
 #include "pokemon_jump.h"
 #include "pokemon_storage_system.h"
@@ -8321,3 +8322,170 @@ static void FieldCallback_RockClimb(void)
     gFieldEffectArguments[0] = GetCursorSelectionMonId();
     FieldEffectStart(FLDEFF_USE_ROCK_CLIMB);
 }
+
+// ======================== POKEVIAL ========================
+
+static bool8 IsMonNotFullyHealed(void)
+{
+    struct Pokemon *mon = &gPlayerParty[gPartyMenu.slotId];
+    u16 currentHP = GetMonData(mon, MON_DATA_HP);
+    u16 maxHP = GetMonData(mon, MON_DATA_MAX_HP);
+    u32 status = GetMonData(mon, MON_DATA_STATUS);
+    u8 currentPP, maxPP;
+    u8 ppBonuses = GetMonData(mon, MON_DATA_PP_BONUSES);
+    s32 j;
+
+    if (currentHP < maxHP)
+        return TRUE;
+    if (status != 0)
+        return TRUE;
+    for (j = 0; j < MAX_MON_MOVES; j++)
+    {
+        currentPP = GetMonData(mon, MON_DATA_PP1 + j);
+        maxPP = CalculatePPWithBonus(GetMonData(mon, MON_DATA_MOVE1 + j), ppBonuses, j);
+        if (currentPP < maxPP)
+            return TRUE;
+    }
+    return FALSE;
+}
+
+static void HealMonFromSlotId(void)
+{
+    struct Pokemon *mon = &gPlayerParty[gPartyMenu.slotId];
+    u32 j, ppBonuses;
+    u8 arg[4] = {0, 0, 0, 0};
+    u16 maxHP = GetMonData(mon, MON_DATA_MAX_HP);
+
+    arg[0] = maxHP;
+    arg[1] = maxHP >> 8;
+    SetMonData(mon, MON_DATA_HP, arg);
+
+    ppBonuses = GetMonData(mon, MON_DATA_PP_BONUSES);
+    for (j = 0; j < MAX_MON_MOVES; j++)
+    {
+        arg[0] = CalculatePPWithBonus(GetMonData(mon, MON_DATA_MOVE1 + j), ppBonuses, j);
+        SetMonData(mon, MON_DATA_PP1 + j, arg);
+    }
+
+    arg[0] = 0; arg[1] = 0; arg[2] = 0; arg[3] = 0;
+    SetMonData(mon, MON_DATA_STATUS, arg);
+}
+
+#define tUsedOnSlot   sPartyMenuInternal->data[0]
+#define tHadEffect    sPartyMenuInternal->data[1]
+#define tLastSlotUsed sPartyMenuInternal->data[2]
+
+static void Task_PokevialLoop(u8 taskId);
+static void UsePokevial(u8 taskId);
+
+// Starter task: viene chiamato come primo task dal party menu.
+// Inizializza i dati (sPartyMenuInternal è ora valido) e parte dallo slot 0.
+static void Task_StartPokevial(u8 taskId)
+{
+    if (gPaletteFade.active)
+        return;
+    tUsedOnSlot   = FALSE;
+    tHadEffect    = FALSE;
+    tLastSlotUsed = 0;
+    gPartyMenu.slotId = 0;
+    UsePokevial(taskId);
+}
+
+static void UsePokevial(u8 taskId)
+{
+    struct Pokemon *mon = &gPlayerParty[gPartyMenu.slotId];
+    u16 hp, maxHP;
+
+    if (GetMonData(mon, MON_DATA_SPECIES) == SPECIES_NONE)
+    {
+        gTasks[taskId].func = Task_PokevialLoop;
+        return;
+    }
+    if (!IsMonNotFullyHealed())
+    {
+        gTasks[taskId].func = Task_PokevialLoop;
+        return;
+    }
+
+    hp = GetMonData(mon, MON_DATA_HP);
+    maxHP = GetMonData(mon, MON_DATA_MAX_HP);
+
+    PlaySE(SE_USE_ITEM);
+    HealMonFromSlotId();
+    SetPartyMonAilmentGfx(mon, &sPartyMenuBoxes[gPartyMenu.slotId]);
+    if (gSprites[sPartyMenuBoxes[gPartyMenu.slotId].statusSpriteId].invisible)
+        DisplayPartyPokemonLevelCheck(mon, &sPartyMenuBoxes[gPartyMenu.slotId], 1);
+    AnimatePartySlot(tLastSlotUsed, 0);
+    AnimatePartySlot(gPartyMenu.slotId, 1);
+    tUsedOnSlot = TRUE;
+    tHadEffect  = TRUE;
+    if (hp != maxHP)
+    {
+        PartyMenuModifyHP(taskId, gPartyMenu.slotId, 1, maxHP - hp, Task_PokevialLoop);
+        ResetHPTaskData(taskId, 0, hp);
+    }
+    else
+    {
+        gTasks[taskId].func = Task_PokevialLoop;
+    }
+}
+
+static void Task_PokevialLoop(u8 taskId)
+{
+    if (IsPartyMenuTextPrinterActive())
+        return;
+
+    if (tUsedOnSlot == TRUE)
+    {
+        tUsedOnSlot   = FALSE;
+        tLastSlotUsed = gPartyMenu.slotId;
+    }
+
+    gPartyMenu.slotId++;
+    if (gPartyMenu.slotId < PARTY_SIZE)
+    {
+        UsePokevial(taskId);
+        return;
+    }
+
+    gPartyMenuUseExitCallback = FALSE;
+    if (tHadEffect)
+    {
+        PokevialDoseDown(VIAL_STANDARD_DOSE);
+        DisplayPartyMenuMessage(gText_YourPkmnWereRestored, FALSE);
+    }
+    else
+    {
+        DisplayPartyMenuMessage(gText_WontHaveEffect, TRUE);
+    }
+
+    ScheduleBgCopyTilemapToVram(2);
+    gTasks[taskId].func = Task_ClosePartyMenuAfterText;
+    gPartyMenu.slotId = 0;
+}
+
+#undef tUsedOnSlot
+#undef tHadEffect
+#undef tLastSlotUsed
+
+void ItemUseCB_UsePokevial(u8 taskId, TaskFunc task)
+{
+    if (gPartyMenu.slotId == 0)
+        sPartyMenuInternal->data[1] = FALSE; // tHadEffect reset
+
+    sPartyMenuInternal->data[0] = FALSE; // tUsedOnSlot
+    sPartyMenuInternal->data[2] = gPartyMenu.slotId; // tLastSlotUsed
+    UsePokevial(taskId);
+}
+
+void InitPartyMenuForPokevialFromField(u8 taskId)
+{
+    InitPartyMenu(PARTY_MENU_TYPE_FIELD, PARTY_LAYOUT_SINGLE, PARTY_ACTION_USE_ITEM, TRUE, PARTY_MSG_NONE, Task_StartPokevial, CB2_ReturnToField);
+}
+
+void InitPartyMenuForPokevialFromBag(MainCallback exitCallback)
+{
+    InitPartyMenu(PARTY_MENU_TYPE_FIELD, PARTY_LAYOUT_SINGLE, PARTY_ACTION_USE_ITEM, TRUE, PARTY_MSG_NONE, Task_StartPokevial, exitCallback);
+}
+
+// ======================== FINE POKEVIAL ========================

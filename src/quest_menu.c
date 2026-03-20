@@ -394,7 +394,7 @@ static void PrintCategoryHeader(void)
 
     // Hint con icone tasti
     BuildHintString(hintBuf);
-    hintX = 28 * 8 - GetStringWidth(FONT_NARROW, hintBuf, 0) - 1;
+    hintX = 28 * 8 - GetStringWidth(FONT_NARROW, hintBuf, 0) - 2;
 
     // Compone "NomeFiltro x/y" come unica stringa a sinistra
     StringCopy(gStringVar4, label);

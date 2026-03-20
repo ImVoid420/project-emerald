@@ -33,6 +33,7 @@
 #include "overworld.h"
 #include "palette.h"
 #include "party_menu.h"
+#include "pokevial.h"
 #include "pokeblock.h"
 #include "pokemon.h"
 #include "script.h"
@@ -1618,77 +1619,122 @@ void ItemUseOutOfBattle_TownMap(u8 taskId)
     }
 }
 
-// Callback per Select (Overworld)
-static void Task_PokeVial_CloseOnField(u8 taskId)
+static void UsePokevialYes(u8 taskId);
+static void Task_UsePokevialBagYes(u8 taskId);
+static void Task_UsePokevialFieldYes(u8 taskId);
+static void UsePokevialFieldYes(u8 taskId);
+static void UsePokevialFieldNo(u8 taskId);
+
+static const struct YesNoFuncTable sUsePokevialYesNoFuncTable =
 {
-    if (JOY_NEW(A_BUTTON | B_BUTTON))
+    .yesFunc = UsePokevialYes,
+    .noFunc  = CloseItemMessage,
+};
+
+static const struct YesNoFuncTable sYesNoTable_PokevialFieldFuncTable =
+{
+    .yesFunc = UsePokevialFieldYes,
+    .noFunc  = UsePokevialFieldNo,
+};
+
+static void UsePokevialYesNo(u8 taskId)
+{
+    BagMenu_YesNo(taskId, ITEMWIN_YESNO_HIGH, &sUsePokevialYesNoFuncTable);
+}
+
+static void UsePokevialFieldYesNo(u8 taskId)
+{
+    DisplayYesNoMenuDefaultYes();
+    DoYesNoFuncWithChoice(taskId, &sYesNoTable_PokevialFieldFuncTable);
+}
+
+static void UsePokevialYes(u8 taskId)
+{
+    if (POKEVIAL_SKIP_CUTSCENE)
     {
-        ClearDialogWindowAndFrame(0, TRUE);
-        ScriptContext_Enable();
-        ScriptUnfreezeObjectEvents();
-        UnlockPlayerFieldControls();
+        Pokevial_HealPlayerParty();
+        PokevialDoseDown(VIAL_STANDARD_DOSE);
+        StringExpandPlaceholders(gStringVar4, gText_YourPkmnWereRestored);
+        DisplayItemMessage(taskId, FONT_NORMAL, gStringVar4, CloseItemMessage);
+    }
+    else
+    {
+        gPartyMenu.exitCallback = gMain.savedCallback;
+        FadeScreen(FADE_TO_BLACK, 0);
+        CreateTask(Task_UsePokevialBagYes, 1);
         DestroyTask(taskId);
     }
 }
 
-static void Task_PokeVial_WaitAndClose(u8 taskId)
+static void Task_UsePokevialBagYes(u8 taskId)
 {
-    if (JOY_NEW(A_BUTTON | B_BUTTON))
+    if (!gPaletteFade.active)
     {
-        CloseItemMessage(taskId);
+        InitPartyMenuForPokevialFromBag(gPartyMenu.exitCallback);
+        DestroyTask(taskId);
     }
+}
+
+static void UsePokevialFieldYes(u8 taskId)
+{
+    LockPlayerFieldControls();
+    if (POKEVIAL_SKIP_CUTSCENE)
+    {
+        Pokevial_HealPlayerParty();
+        PokevialDoseDown(VIAL_STANDARD_DOSE);
+        StringExpandPlaceholders(gStringVar4, gText_YourPkmnWereRestored);
+        DisplayItemMessageOnField(taskId, gStringVar4, Task_CloseCantUseKeyItemMessage);
+    }
+    else
+    {
+        FadeScreen(FADE_TO_BLACK, 0);
+        CreateTask(Task_UsePokevialFieldYes, 1);
+        DestroyTask(taskId);
+    }
+}
+
+static void Task_UsePokevialFieldYes(u8 taskId)
+{
+    if (!gPaletteFade.active)
+    {
+        CleanupOverworldWindowsAndTilemaps();
+        InitPartyMenuForPokevialFromField(taskId);
+        DestroyTask(taskId);
+    }
+}
+
+static void UsePokevialFieldNo(u8 taskId)
+{
+    ClearDialogWindowAndFrame(0, FALSE);
+    DestroyTask(taskId);
+    ScriptContext_Enable();
 }
 
 void ItemUseOutOfBattle_PokeVial(u8 taskId)
 {
-    u8 i;
-    u16 charges = VarGet(0x40F9);
+    u32 currentDoses = PokevialGetDose();
+    bool32 isField = gTasks[taskId].tUsingRegisteredKeyItem;
 
-    if (charges == 0)
+    CopyItemName(ITEM_POKE_VIAL, gStringVar1);
+
+    if (currentDoses > EMPTY_VIAL)
     {
-        // Se è vuoto, usiamo lo stesso sistema che "aspetta" il tasto A
-        if (gTasks[taskId].tUsingRegisteredKeyItem)
-        {
-            // Se usato con SELECT dall'Overworld
-            DisplayItemMessageOnField(taskId, COMPOUND_STRING("Il PokéVial è vuoto..."), Task_PokeVial_CloseOnField);
-        }
+        u32 numDigits = (currentDoses >= 10) ? 2 : 1;
+        ConvertIntToDecimalStringN(gStringVar2, currentDoses, STR_CONV_MODE_LEFT_ALIGN, numDigits);
+        StringExpandPlaceholders(gStringVar4, gText_PokevialHasDoses);
+        if (isField)
+            DisplayItemMessageOnField(taskId, gStringVar4, UsePokevialFieldYesNo);
         else
-        {
-            // Se usato dallo zaino, usiamo il task che aspetta l'input (Task_PokeVial_WaitAndClose)
-            DisplayItemMessage(taskId, FONT_NORMAL, COMPOUND_STRING("Il PokéVial è vuoto..."), Task_PokeVial_WaitAndClose);
-        }
-        return;
-    }
-
-    // Effetto cura
-    for (i = 0; i < PARTY_SIZE; i++)
-    {
-        if (GetMonData(&gPlayerParty[i], MON_DATA_SPECIES) != SPECIES_NONE && !GetMonData(&gPlayerParty[i], MON_DATA_IS_EGG))
-        {
-            u16 maxHP = GetMonData(&gPlayerParty[i], MON_DATA_MAX_HP);
-            SetMonData(&gPlayerParty[i], MON_DATA_HP, &maxHP);
-            u32 status = 0;
-            SetMonData(&gPlayerParty[i], MON_DATA_STATUS, &status);
-        }
-    }
-
-    charges--;
-    VarSet(0x40F9, charges);
-    PlaySE(SE_USE_ITEM);
-
-    ConvertIntToDecimalStringN(gStringVar1, charges, STR_CONV_MODE_LEFT_ALIGN, 1);
-    StringExpandPlaceholders(gStringVar4, COMPOUND_STRING("Squadra curata!\nCariche rimaste: {STR_VAR_1}."));
-
-    if (gTasks[taskId].tUsingRegisteredKeyItem)
-    {
-        DisplayItemMessageOnField(taskId, gStringVar4, Task_PokeVial_CloseOnField);
+            DisplayItemMessage(taskId, FONT_NORMAL, gStringVar4, UsePokevialYesNo);
     }
     else
     {
-        // USATO DALLO ZAINO:
-        // Usiamo Task_PokeVial_WaitAndClose invece di CloseItemMessage direttamente.
-        // Questo costringe il gioco a passare per il controllo dei tasti A/B.
-        DisplayItemMessage(taskId, FONT_NORMAL, gStringVar4, Task_PokeVial_WaitAndClose);
+        StringCopy(gStringVar2, gText_PokemonCenter);
+        StringExpandPlaceholders(gStringVar4, gText_PokevialIsEmpty);
+        if (isField)
+            DisplayItemMessageOnField(taskId, gStringVar4, Task_CloseCantUseKeyItemMessage);
+        else
+            DisplayItemMessage(taskId, FONT_NORMAL, gStringVar4, CloseItemMessage);
     }
 }
 

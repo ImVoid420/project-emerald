@@ -6,12 +6,12 @@ Common_EventScript_PkmnCenterNurse::
 	lock
 	faceplayer
 	@ --- INIZIO LOGICA OTTENIMENTO POKÉVIAL ---
-	@ Se non hai la flag 0x905, ti dà subito l'oggetto prima di ogni altra cosa
+	@ Se non hai la flag 0x905, ti dà l'oggetto e inizializza il vial
 	goto_if_set 0x905, EventScript_PkmnCenterNurse_SkipGiveVial
 	msgbox EventScript_PkmnCenterNurse_Text_GiveVial, MSGBOX_DEFAULT
 	giveitem ITEM_POKE_VIAL
 	setflag 0x905
-	setvar 0x40F9, 5
+	special PokevialInitDefault
 	msgbox EventScript_PkmnCenterNurse_Text_ExplainVial, MSGBOX_DEFAULT
 EventScript_PkmnCenterNurse_SkipGiveVial:
 	@ --- FINE LOGICA OTTENIMENTO POKÉVIAL ---
@@ -25,7 +25,7 @@ EventScript_PkmnCenterNurse_SkipGiveVial:
 
 EventScript_PkmnCenterNurse_HealPkmn::
 	incrementgamestat GAME_STAT_USED_POKECENTER
-	setvar 0x40F9, 5  @ Ricarica sempre il Vial quando rispondi SI alla cura
+	specialvar VAR_RESULT, PokevialRefill  @ Ricarica il PokéVial dopo la cura
 	call_if_eq VAR_0x8004, 0, EventScript_PkmnCenterNurse_IllTakeYourPkmn
 	call_if_eq VAR_0x8004, 1, EventScript_PkmnCenterNurse_IllTakeYourPkmn2
 	waitmessage

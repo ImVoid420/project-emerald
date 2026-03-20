@@ -79,6 +79,59 @@ struct SideQuest {
 - [ ] **Macro script di convenienza** — `goto_if_quest_active`, `goto_if_quest_complete`, `returnqueststate` ecc.
 - [ ] **Reset `sSortAlpha` all'uscita** — attualmente l'ordinamento A-Z persiste tra aperture; nella repo PSF si resetta all'uscita
 
+### PokéVial
+- Riferimento: https://www.pokecommunity.com/threads/pok%C3%A9vial.500216/
+- File principali: `src/item_use.c`, `data/scripts/field_move_scripts.inc`, `data/scripts/pkmn_center_nurse.inc`
+- Item ID: `ITEM_POKE_VIAL` (vedere `include/constants/items.h`)
+- Cariche gestite tramite `VAR_POKE_VIAL_CHARGES` (`0x40F9`)
+- Il Pokécenter dà l'oggetto e ricarica la variabile (`data/scripts/pkmn_center_nurse.inc`)
+
+#### Funzionamento attuale
+- Usabile da borsa e da SELECT (key item wheel)
+- Cura HP e status di tutti i Pokémon della squadra
+- Se carica = 0: mostra messaggio "Il PokéVial è vuoto..."
+- Decrementa la variabile ad ogni uso e mostra le cariche rimanenti
+
+#### TODO — da fixare/migliorare
+- [ ] **PP non ripristinati** — bug funzionale: il loop in `ItemUseOutOfBattle_PokeVial` cura solo HP+status, mancano le mosse. Fix: aggiungere loop su `MON_DATA_PP` con `CalculatePPWithBonus`
+- [ ] **Animazione di cura** — l'originale PSF fa fade + party menu animation come al Pokécenter; attualmente si mostra solo un messaggio
+- [ ] **Sistema dose/size** — l'originale distingue "cariche attuali" (dose) e "capacità massima" (size, aumentabile con ricompense); noi abbiamo solo un numero fisso
+- [ ] **Icona dinamica** — l'originale ha 11 stati grafici (0-100% pieno); richiede nuova grafica
+
+### Party Menu — Shortcut
+- **SELECT** su un Pokémon → lo sposta direttamente in prima posizione (via `SwitchSelectedMons`)
+- **L** su un Pokémon → entra in modalità sposta senza aprire il mini-menu; **L di nuovo** → conferma lo spostamento
+- Implementato in `Task_HandleChooseMonInput` (`src/party_menu.c`)
+
+### Key Item Wheel (ORAS-style)
+- Riferimento: https://www.pokecommunity.com/threads/oras-style-key-item-wheel.498877/
+- File principali: `src/item_menu.c`, `src/item_icon.c`, `include/item_icon.h`, `include/item_menu.h`
+- Grafica: `graphics/bag/key_item_box.png/.gbapal`, `graphics/bag/select_button_right/down/left.png`
+
+#### Architettura
+- Fino a 4 key item registrabili simultaneamente in `gSaveBlock1Ptr->registeredItems[4]`
+- `registeredItemCompat` mantiene compat con il vecchio slot singolo
+- `MAX_REMATCH_ENTRIES` ridotto 100→92 per fare spazio agli 8 byte di `registeredItems[4]`
+- `RegisteredItemIndex(item)` — restituisce lo slot (0-3) di un item, o -1 se non registrato
+- `CountRegisteredItems()` — conta gli item registrati con migrazione automatica da `registeredItemCompat`
+
+#### Registrazione
+- Da borsa → menu contestuale → "REGISTER": se già registrato → deregistra; se 0 item registrati → slot 0 automatico; altrimenti → mostra prompt "Press any D-pad key" → `Task_RegisterUsingDpad`
+- Icone direzionali mostrate nella lista accanto all'item registrato (↑ slot 0, → slot 1, ↓ slot 2, ← slot 3)
+
+#### Uso (SELECT in overworld)
+- 1 item registrato → usa direttamente
+- 2-4 item registrati → apre il wheel overlay (croce centrata sullo schermo)
+- Il wheel usa HBlank scanline trick per la palette del 4° item (`sKeyItemWheelExtraPalette`, palette 13)
+- In dark cave: attiva OBJWIN sprites per mostrare le box
+
+#### SaveBlock1 layout
+| Offset | Campo | Note |
+|---|---|---|
+| 0x496 | `registeredItemCompat` | vecchio slot singolo, mantenuto per compat |
+| 0x9CA | `trainerRematches[92]` | ridotto da 100 (78 usati, margine sufficiente) |
+| 0xA26 | `registeredItems[4]` | 4 slot × u16 = 8 byte |
+
 ## Tool disponibili
 - **Porymap** — editor visuale per mappe, eventi, connessioni, wild encounters
 - **Tilemap Studio** — editor per tilemap/grafica
