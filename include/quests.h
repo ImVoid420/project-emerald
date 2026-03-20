@@ -14,6 +14,10 @@ enum QuestCases
     FLAG_SET_REWARDED,
 };
 
+// Tipi di sprite NPC nel riquadro bianco
+#define QUEST_SPRITE_OBJECT 1   // sprite overworld NPC
+#define QUEST_SPRITE_PKMN   3   // icona Pokémon
+
 struct SideQuest
 {
     const u8* name;
@@ -23,6 +27,7 @@ struct SideQuest
     const u8* map;
     const u8* reward;
     u16 npcGraphicsId;
+    u8 spritetype;        // QUEST_SPRITE_OBJECT o QUEST_SPRITE_PKMN
 };
 
 extern const struct SideQuest gSideQuests[SIDE_QUEST_COUNT];

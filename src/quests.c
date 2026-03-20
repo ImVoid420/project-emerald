@@ -48,6 +48,7 @@ const struct SideQuest gSideQuests[SIDE_QUEST_COUNT] =
         .map      = gText_SideQuestMap_1,
         .reward   = gText_SideQuestReward_1,
         .npcGraphicsId = OBJ_EVENT_GFX_FLANNERY,
+        .spritetype    = QUEST_SPRITE_OBJECT,
     },
 };
 
