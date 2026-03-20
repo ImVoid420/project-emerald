@@ -2377,6 +2377,7 @@ extern const u8 gText_Cancel3[];
 
 // Naming Screen
 extern const u8 gText_MoveOkBack[];
+extern const u8 gText_PressAnyDpadKey[];
 extern const u8 gText_YourName[];
 extern const u8 gText_BoxName[];
 extern const u8 gText_PkmnsNickname[];
