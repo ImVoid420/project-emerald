@@ -1421,11 +1421,49 @@ u8 GetPartyMenuType(void)
     return gPartyMenu.menuType;
 }
 
+static void SwitchSelectedMons(u8 taskId); // forward declaration
+
 void Task_HandleChooseMonInput(u8 taskId)
 {
     if (!gPaletteFade.active && MenuHelpers_ShouldWaitForLinkRecv() != TRUE)
     {
         s8 *slotPtr = GetCurrentPartySlotPtr();
+
+        // SELECT: sposta il Pokémon corrente in prima posizione
+        if (JOY_NEW(SELECT_BUTTON)
+            && gPartyMenu.action != PARTY_ACTION_SWITCH
+            && gPartyMenu.slotId > 0
+            && gPartyMenu.slotId < PARTY_SIZE)
+        {
+            gFollowerSteps = 0;
+            PlaySE(SE_SELECT);
+            gPartyMenu.slotId2 = 0;
+            SwitchSelectedMons(taskId);
+            return;
+        }
+
+        // L: entra in modalità sposta, oppure conferma lo spostamento se già attiva
+        if (JOY_NEW(L_BUTTON))
+        {
+            if (gPartyMenu.action == PARTY_ACTION_SWITCH)
+            {
+                // Conferma destinazione (stesso comportamento di A)
+                HandleChooseMonSelection(taskId, slotPtr);
+            }
+            else if (gPartyMenu.slotId >= 0 && gPartyMenu.slotId < PARTY_SIZE)
+            {
+                if (gPartyMenu.slotId == 0)
+                    gFollowerSteps = 0;
+                PlaySE(SE_SELECT);
+                gPartyMenu.action = PARTY_ACTION_SWITCH;
+                PartyMenuRemoveWindow(&sPartyMenuInternal->windowId[1]);
+                PartyMenuRemoveWindow(&sPartyMenuInternal->windowId[0]);
+                DisplayPartyMenuStdMessage(PARTY_MSG_MOVE_TO_WHERE);
+                AnimatePartySlot(gPartyMenu.slotId, 1);
+                gPartyMenu.slotId2 = gPartyMenu.slotId;
+            }
+            return;
+        }
 
         switch (PartyMenuButtonHandler(slotPtr))
         {
