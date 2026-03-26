@@ -71,4 +71,16 @@ enum ItemTMHMOrEvolutionStone
     ITEM_IS_EVOLUTION_STONE,
 };
 
+// QoL Field Move Tools
+void ItemUseOutOfBattle_CutTool(u8 taskId);
+void ItemUseOutOfBattle_FlyTool(u8 taskId);
+void ItemUseOutOfBattle_SurfTool(u8 taskId);
+void ItemUseOutOfBattle_StrengthTool(u8 taskId);
+void ItemUseOutOfBattle_FlashTool(u8 taskId);
+void ItemUseOutOfBattle_RockSmashTool(u8 taskId);
+void ItemUseOutOfBattle_WaterfallTool(u8 taskId);
+void ItemUseOutOfBattle_DiveTool(u8 taskId);
+void ItemUseOutOfBattle_TeleportTool(u8 taskId);
+void ItemUseOutOfBattle_SweetScentTool(u8 taskId);
+
 #endif // GUARD_ITEM_USE_H

@@ -200,11 +200,11 @@
   ],
   "warp_events": [
     {
-      "x": 9,
-      "y": 8,
+      "x": 18,
+      "y": 1,
       "elevation": 0,
-      "dest_map": "MAP_SLATEPORT_CITY",
-      "dest_warp_id": "5"
+      "dest_map": "MAP_SLATEPORT_CITY_OCEANIC_MUSEUM_SECRET_ROOM",
+      "dest_warp_id": "0"
     },
     {
       "x": 10,
@@ -219,6 +219,13 @@
       "elevation": 0,
       "dest_map": "MAP_SLATEPORT_CITY_OCEANIC_MUSEUM_2F",
       "dest_warp_id": "0"
+    },
+    {
+      "x": 9,
+      "y": 8,
+      "elevation": 0,
+      "dest_map": "MAP_SLATEPORT_CITY",
+      "dest_warp_id": "7"
     }
   ],
   "coord_events": [
@@ -332,7 +339,7 @@
     },
     {
       "type": "sign",
-      "x": 16,
+      "x": 14,
       "y": 1,
       "elevation": 0,
       "player_facing_dir": "BG_EVENT_PLAYER_FACING_ANY",
@@ -340,7 +347,7 @@
     },
     {
       "type": "sign",
-      "x": 17,
+      "x": 15,
       "y": 1,
       "elevation": 0,
       "player_facing_dir": "BG_EVENT_PLAYER_FACING_ANY",

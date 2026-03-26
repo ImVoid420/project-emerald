@@ -60,7 +60,13 @@ static void Task_DoFieldMove_Init(u8 taskId)
     if (!ObjectEventIsMovementOverridden(&gObjectEvents[objEventId])
      || ObjectEventClearHeldMovementIfFinished(&gObjectEvents[objEventId]))
     {
-        if (gMapHeader.mapType == MAP_TYPE_UNDERWATER || gFieldEffectArguments[3])
+        if (gFieldEffectArguments[3] == 2)
+        {
+            // Tool mode: skip both player pose and mon animation
+            gFieldEffectArguments[3] = 0;
+            gTasks[taskId].func = Task_DoFieldMove_RunFunc;
+        }
+        else if (gMapHeader.mapType == MAP_TYPE_UNDERWATER || gFieldEffectArguments[3])
         {
             // Skip field move pose underwater, or if arg3 is nonzero
             if (gFieldEffectArguments[3])

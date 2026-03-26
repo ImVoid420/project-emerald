@@ -47,7 +47,13 @@
 #include "constants/event_objects.h"
 #include "constants/item_effects.h"
 #include "constants/items.h"
+#include "constants/flags.h"
+#include "constants/map_types.h"
 #include "constants/songs.h"
+#include "constants/vars.h"
+#include "field_control_avatar.h"
+#include "qol_field_moves.h"
+#include "region_map.h"
 
 static void SetUpItemUseCallback(u8);
 static void FieldCB_UseItemOnField(void);
@@ -81,6 +87,17 @@ static void SetDistanceOfClosestHiddenItem(u8, s16, s16);
 static void CB2_OpenPokeblockFromBag(void);
 static void ItemUseOnFieldCB_Honey(u8 taskId);
 static bool32 IsValidLocationForVsSeeker(void);
+
+// QoL Field Move Tools
+static void ItemUseOnFieldCB_CutTool(u8 taskId);
+static void ItemUseOnFieldCB_SurfTool(u8 taskId);
+static void ItemUseOnFieldCB_StrengthTool(u8 taskId);
+static void ItemUseOnFieldCB_FlashTool(u8 taskId);
+static void ItemUseOnFieldCB_RockSmashTool(u8 taskId);
+static void ItemUseOnFieldCB_WaterfallTool(u8 taskId);
+static void ItemUseOnFieldCB_DiveTool(u8 taskId);
+static void ItemUseOnFieldCB_TeleportTool(u8 taskId);
+static void ItemUseOnFieldCB_SweetScentTool(u8 taskId);
 
 static const u8 sText_CantDismountBike[] = _("You can't dismount your BIKE here.{PAUSE_UNTIL_PRESS}");
 static const u8 sText_ItemFinderNearby[] = _("Huh?\nThe ITEMFINDER's responding!\pThere's an item buried around here!{PAUSE_UNTIL_PRESS}");
@@ -1736,6 +1753,235 @@ void ItemUseOutOfBattle_PokeVial(u8 taskId)
         else
             DisplayItemMessage(taskId, FONT_NORMAL, gStringVar4, CloseItemMessage);
     }
+}
+
+// ============================================================================
+// QoL Field Move Tools
+// ============================================================================
+
+// Script labels declared in qol_field_move_scripts.inc
+extern const u8 EventScript_CutToolMode[];
+extern const u8 EventScript_SurfToolMode[];
+extern const u8 EventScript_StrengthToolMode[];
+extern const u8 EventScript_FlashToolMode[];
+extern const u8 EventScript_RockSmashToolMode[];
+extern const u8 EventScript_WaterfallToolMode[];
+extern const u8 EventScript_DiveToolMode[];
+extern const u8 EventScript_DiveUnderwaterToolMode[];
+
+// ---- CUT TOOL ---------------------------------------------------------------
+static void ItemUseOnFieldCB_CutTool(u8 taskId)
+{
+    if (CheckObjectGraphicsInFrontOfPlayer(OBJ_EVENT_GFX_CUTTABLE_TREE))
+    {
+        ScriptContext_SetupScript(EventScript_CutToolMode);
+        DestroyTask(taskId);
+    }
+    else
+    {
+        DisplayDadsAdviceCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem);
+    }
+}
+
+void ItemUseOutOfBattle_CutTool(u8 taskId)
+{
+    sItemUseOnFieldCB = ItemUseOnFieldCB_CutTool;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+// ---- SURF TOOL --------------------------------------------------------------
+static void ItemUseOnFieldCB_SurfTool(u8 taskId)
+{
+    // Tools bypass badge (IsFieldMoveUnlocked) check
+    if (IsPlayerFacingSurfableFishableWater()
+     && !(gPlayerAvatar.flags & PLAYER_AVATAR_FLAG_SURFING)
+     && CheckFollowerNPCFlag(FOLLOWER_NPC_FLAG_CAN_SURF))
+    {
+        ScriptContext_SetupScript(EventScript_SurfToolMode);
+        DestroyTask(taskId);
+    }
+    else
+    {
+        DisplayDadsAdviceCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem);
+    }
+}
+
+void ItemUseOutOfBattle_SurfTool(u8 taskId)
+{
+    sItemUseOnFieldCB = ItemUseOnFieldCB_SurfTool;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+// ---- STRENGTH TOOL ----------------------------------------------------------
+static void ItemUseOnFieldCB_StrengthTool(u8 taskId)
+{
+    ScriptContext_SetupScript(EventScript_StrengthToolMode);
+    DestroyTask(taskId);
+}
+
+void ItemUseOutOfBattle_StrengthTool(u8 taskId)
+{
+    sItemUseOnFieldCB = ItemUseOnFieldCB_StrengthTool;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+// ---- FLASH TOOL -------------------------------------------------------------
+static void ItemUseOnFieldCB_FlashTool(u8 taskId)
+{
+    if (gMapHeader.cave && !FlagGet(FLAG_SYS_USE_FLASH))
+    {
+        PlaySE(SE_M_REFLECT);
+        FlagSet(FLAG_SYS_USE_FLASH);
+        ScriptContext_SetupScript(EventScript_FlashToolMode);
+        DestroyTask(taskId);
+    }
+    else
+    {
+        DisplayDadsAdviceCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem);
+    }
+}
+
+void ItemUseOutOfBattle_FlashTool(u8 taskId)
+{
+    sItemUseOnFieldCB = ItemUseOnFieldCB_FlashTool;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+// ---- ROCK SMASH TOOL --------------------------------------------------------
+static void ItemUseOnFieldCB_RockSmashTool(u8 taskId)
+{
+    if (CheckObjectGraphicsInFrontOfPlayer(OBJ_EVENT_GFX_BREAKABLE_ROCK))
+    {
+        ScriptContext_SetupScript(EventScript_RockSmashToolMode);
+        DestroyTask(taskId);
+    }
+    else
+    {
+        DisplayDadsAdviceCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem);
+    }
+}
+
+void ItemUseOutOfBattle_RockSmashTool(u8 taskId)
+{
+    sItemUseOnFieldCB = ItemUseOnFieldCB_RockSmashTool;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+// ---- WATERFALL TOOL ---------------------------------------------------------
+static void ItemUseOnFieldCB_WaterfallTool(u8 taskId)
+{
+    s16 x, y;
+    GetXYCoordsOneStepInFrontOfPlayer(&x, &y);
+    // Tools bypass badge (IsFieldMoveUnlocked) check
+    if (MetatileBehavior_IsWaterfall(MapGridGetMetatileBehaviorAt(x, y))
+     && IsPlayerSurfingNorth()
+     && CheckFollowerNPCFlag(FOLLOWER_NPC_FLAG_CAN_WATERFALL))
+    {
+        ScriptContext_SetupScript(EventScript_WaterfallToolMode);
+        DestroyTask(taskId);
+    }
+    else
+    {
+        DisplayDadsAdviceCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem);
+    }
+}
+
+void ItemUseOutOfBattle_WaterfallTool(u8 taskId)
+{
+    sItemUseOnFieldCB = ItemUseOnFieldCB_WaterfallTool;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+// ---- DIVE TOOL --------------------------------------------------------------
+static void ItemUseOnFieldCB_DiveTool(u8 taskId)
+{
+    // Tools bypass badge (IsFieldMoveUnlocked) check
+    if (!CheckFollowerNPCFlag(FOLLOWER_NPC_FLAG_CAN_DIVE))
+    {
+        DisplayDadsAdviceCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem);
+        return;
+    }
+
+    if (gMapHeader.mapType == MAP_TYPE_UNDERWATER)
+    {
+        // Risalita
+        if (TrySetDiveWarp() == 1)
+        {
+            ScriptContext_SetupScript(EventScript_DiveUnderwaterToolMode);
+            DestroyTask(taskId);
+            return;
+        }
+    }
+    else
+    {
+        // Immersione
+        if (TrySetDiveWarp() == 2)
+        {
+            ScriptContext_SetupScript(EventScript_DiveToolMode);
+            DestroyTask(taskId);
+            return;
+        }
+    }
+    DisplayDadsAdviceCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem);
+}
+
+void ItemUseOutOfBattle_DiveTool(u8 taskId)
+{
+    sItemUseOnFieldCB = ItemUseOnFieldCB_DiveTool;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+// ---- TELEPORT TOOL ----------------------------------------------------------
+static void ItemUseOnFieldCB_TeleportTool(u8 taskId)
+{
+    Overworld_ResetStateAfterTeleport();
+    FldEff_TeleportWarpOut();
+    DestroyTask(taskId);
+}
+
+void ItemUseOutOfBattle_TeleportTool(u8 taskId)
+{
+    if (!CheckFollowerNPCFlag(FOLLOWER_NPC_FLAG_CAN_LEAVE_ROUTE)
+     || !Overworld_MapTypeAllowsTeleportAndFly(gMapHeader.mapType))
+    {
+        DisplayDadsAdviceCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem);
+        return;
+    }
+    sItemUseOnFieldCB = ItemUseOnFieldCB_TeleportTool;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+// ---- SWEET SCENT TOOL -------------------------------------------------------
+static void ItemUseOnFieldCB_SweetScentTool(u8 taskId)
+{
+    StartSweetScentFieldEffect();
+    DestroyTask(taskId);
+}
+
+void ItemUseOutOfBattle_SweetScentTool(u8 taskId)
+{
+    sItemUseOnFieldCB = ItemUseOnFieldCB_SweetScentTool;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+// ---- FLY TOOL ---------------------------------------------------------------
+static void FlyToolCallback(void)
+{
+    VarSet(VAR_FLY_TOOL_SOURCE, 1);
+    CB2_OpenFlyMap();
+}
+
+void ItemUseOutOfBattle_FlyTool(u8 taskId)
+{
+    if (!CheckFollowerNPCFlag(FOLLOWER_NPC_FLAG_CAN_LEAVE_ROUTE)
+     || !Overworld_MapTypeAllowsTeleportAndFly(gMapHeader.mapType))
+    {
+        DisplayDadsAdviceCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem);
+        return;
+    }
+    gFieldCallback2 = FieldCallback_PrepareFadeInFromMenu;
+    gPostMenuFieldCallback = FlyToolCallback;
+    Task_FadeAndCloseBagMenu(taskId);
 }
 
 #undef tUsingRegisteredKeyItem

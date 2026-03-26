@@ -1022,7 +1022,19 @@
 #define ITEM_FALINKSITE 854
 #define ITEM_POKE_VIAL 855
 
-#define ITEMS_COUNT 856
+// QoL Field Move Tools — usabili da borsa o come Key Item registrato
+#define ITEM_CUT_TOOL          856
+#define ITEM_FLY_TOOL          857
+#define ITEM_SURF_TOOL         858
+#define ITEM_STRENGTH_TOOL     859
+#define ITEM_FLASH_TOOL        860
+#define ITEM_ROCK_SMASH_TOOL   861
+#define ITEM_WATERFALL_TOOL    862
+#define ITEM_DIVE_TOOL         863
+#define ITEM_TELEPORT_TOOL     864
+#define ITEM_SWEET_SCENT_TOOL  865
+
+#define ITEMS_COUNT 866
 #define ITEM_FIELD_ARROW ITEMS_COUNT
 
 // A special item id associated with "Cancel"/"Exit" etc. in a list of items or decorations

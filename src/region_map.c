@@ -2007,7 +2007,16 @@ static void CB_ExitFlyMap(void)
             }
             else
             {
-                SetMainCallback2(CB2_ReturnToPartyMenuFromFlyMap);
+                // If Fly was triggered from the Fly Tool, return to field instead of party menu
+                if (VarGet(VAR_FLY_TOOL_SOURCE))
+                {
+                    VarSet(VAR_FLY_TOOL_SOURCE, 0);
+                    SetMainCallback2(CB2_ReturnToField);
+                }
+                else
+                {
+                    SetMainCallback2(CB2_ReturnToPartyMenuFromFlyMap);
+                }
             }
             TRY_FREE_AND_SET_NULL(sFlyMap);
             FreeAllWindowBuffers();

@@ -1963,7 +1963,10 @@ static bool8 WaterfallFieldEffect_Init(struct Task *task, struct ObjectEvent *ob
 {
     LockPlayerFieldControls();
     gPlayerAvatar.preventStep = TRUE;
-    task->tState++;
+    if (task->tMonId == PARTY_SIZE)
+        task->tState = 3; // Tool mode: skip mon animation, go straight to RideUp
+    else
+        task->tState++;
     return FALSE;
 }
 
@@ -2037,7 +2040,16 @@ void Task_UseDive(u8 taskId)
 static bool8 DiveFieldEffect_Init(struct Task *task)
 {
     gPlayerAvatar.preventStep = TRUE;
-    task->data[0]++;
+    if (task->data[15] == PARTY_SIZE)
+    {
+        // Tool mode: skip mon animation, lock player here and go straight to TryWarp
+        LockPlayerFieldControls();
+        task->data[0] = 2;
+    }
+    else
+    {
+        task->data[0]++;
+    }
     return FALSE;
 }
 
@@ -3258,7 +3270,10 @@ static void SurfFieldEffect_Init(struct Task *task)
     SetPlayerAvatarStateMask(PLAYER_AVATAR_FLAG_SURFING);
     PlayerGetDestCoords(&task->tDestX, &task->tDestY);
     MoveCoords(gObjectEvents[gPlayerAvatar.objectEventId].movementDirection, &task->tDestX, &task->tDestY);
-    task->tState++;
+    if (task->tMonId == PARTY_SIZE)
+        task->tState = 3; // Tool mode: skip player pose and mon animation
+    else
+        task->tState++;
 }
 
 static void SurfFieldEffect_FieldMovePose(struct Task *task)

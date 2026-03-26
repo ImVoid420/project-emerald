@@ -4410,6 +4410,16 @@
       "secondary_tileset": "gTileset_MysteryEventsHouse",
       "border_filepath": "data/layouts/SootopolisCity_MysteryEventsHouse_1F_StairsUnblocked/border.bin",
       "blockdata_filepath": "data/layouts/SootopolisCity_MysteryEventsHouse_1F_StairsUnblocked/map.bin"
+    },
+    {
+      "id": "LAYOUT_SLATEPORT_CITY_OCEANIC_MUSEUM_SECRET_ROOM",
+      "name": "SlateportCity_OceanicMuseum_SecretRoom_Layout",
+      "width": 20,
+      "height": 12,
+      "primary_tileset": "gTileset_Building",
+      "secondary_tileset": "gTileset_OceanicMuseum",
+      "border_filepath": "data/layouts/SlateportCity_OceanicMuseum_SecretRoom/border.bin",
+      "blockdata_filepath": "data/layouts/SlateportCity_OceanicMuseum_SecretRoom/map.bin"
     }
   ]
 }

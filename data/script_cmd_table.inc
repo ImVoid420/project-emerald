@@ -257,6 +257,8 @@ gScriptCmdTable::
 	script_cmd_table_entry SCR_OP_COMPLETE_QUEST         		ScrCmd_completequest,               requests_effects=1  @ 0xe8
 	script_cmd_table_entry SCR_OP_CHECK_QUEST           		ScrCmd_checkquest,                  requests_effects=1  @ 0xe9
 	script_cmd_table_entry SCR_OP_REWARD_QUEST          		ScrCmd_rewardquest,                 requests_effects=1  @ 0xea
+	script_cmd_table_entry SCR_OP_CHECK_FIELDMOVE_CANLEARN		ScrCmd_checkfieldmovecanlearn,      requests_effects=0  @ 0xeb
+	script_cmd_table_entry SCR_OP_CHECK_FIELDMOVE_UNLOCKED		ScrCmd_checkfieldmoveunlocked,      requests_effects=0  @ 0xec
 
 	.if ALLOCATE_SCRIPT_CMD_TABLE
 gScriptCmdTableEnd::

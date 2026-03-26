@@ -15493,14 +15493,145 @@ const struct Item gItemsInfo[] =
 
     [ITEM_POKE_VIAL] =
     {
-        .name = ITEM_NAME("PokéVial"),
+        .name = ITEM_NAME("Pokéfiala"),
         .price = 0,
         .description = COMPOUND_STRING("Uno speciale\nflacone\nche cura i Pokémon."),
         .pocket = POCKET_KEY_ITEMS,
         .type = ITEM_USE_BAG_MENU,
         .fieldUseFunc = ItemUseOutOfBattle_PokeVial,
-        .iconPic = gItemIcon_PokeVial,         // Assicurati che queste icone esistano
-        .iconPalette = gItemIconPalette_PokeVial, // o usa quelle di una pozione per test
+        .iconPic = gItemIcon_PokeVial,
+        .iconPalette = gItemIconPalette_PokeVial,
+    },
+
+    // ---- QoL Field Move Tools -----------------------------------------------
+    [ITEM_CUT_TOOL] =
+    {
+        .name = ITEM_NAME("Lama Tagliente"),
+        .price = 0,
+        .description = COMPOUND_STRING("Taglia gli\nalberi senza\nun Pokémon."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_CutTool,
+        .iconPic = gItemIcon_PokeVial,
+        .iconPalette = gItemIconPalette_PokeVial,
+    },
+
+    [ITEM_FLY_TOOL] =
+    {
+        .name = ITEM_NAME("Ali del Vento"),
+        .price = 0,
+        .description = COMPOUND_STRING("Vola verso\nun luogo\ngià visitato."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_FlyTool,
+        .iconPic = gItemIcon_PokeVial,
+        .iconPalette = gItemIconPalette_PokeVial,
+    },
+
+    [ITEM_SURF_TOOL] =
+    {
+        .name = ITEM_NAME("Tavola Onda"),
+        .price = 0,
+        .description = COMPOUND_STRING("Permette di\nnuotare sull'\nacqua."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_SurfTool,
+        .iconPic = gItemIcon_PokeVial,
+        .iconPalette = gItemIconPalette_PokeVial,
+    },
+
+    [ITEM_STRENGTH_TOOL] =
+    {
+        .name = ITEM_NAME("Cintura di Forza"),
+        .price = 0,
+        .description = COMPOUND_STRING("Permette di\nspingere i\nmacigni."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_StrengthTool,
+        .iconPic = gItemIcon_PokeVial,
+        .iconPalette = gItemIconPalette_PokeVial,
+    },
+
+    [ITEM_FLASH_TOOL] =
+    {
+        .name = ITEM_NAME("Lanterna Magica"),
+        .price = 0,
+        .description = COMPOUND_STRING("Illumina i\ncunicoli\nbui."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_FlashTool,
+        .iconPic = gItemIcon_PokeVial,
+        .iconPalette = gItemIconPalette_PokeVial,
+    },
+
+    [ITEM_ROCK_SMASH_TOOL] =
+    {
+        .name = ITEM_NAME("Martello Frangi"),
+        .price = 0,
+        .description = COMPOUND_STRING("Rompe i\nmassi\nfragilissimi."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_RockSmashTool,
+        .iconPic = gItemIcon_PokeVial,
+        .iconPalette = gItemIconPalette_PokeVial,
+    },
+
+    [ITEM_WATERFALL_TOOL] =
+    {
+        .name = ITEM_NAME("Rampino Cascade"),
+        .price = 0,
+        .description = COMPOUND_STRING("Permette di\nscalare le\ncascate."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_WaterfallTool,
+        .iconPic = gItemIcon_PokeVial,
+        .iconPalette = gItemIconPalette_PokeVial,
+    },
+
+    [ITEM_DIVE_TOOL] =
+    {
+        .name = ITEM_NAME("Bombola Subacquea"),
+        .price = 0,
+        .description = COMPOUND_STRING("Permette di\ntuffarsi in\nacque profonde."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_DiveTool,
+        .iconPic = gItemIcon_PokeVial,
+        .iconPalette = gItemIconPalette_PokeVial,
+    },
+
+    [ITEM_TELEPORT_TOOL] =
+    {
+        .name = ITEM_NAME("Teletrasportatore"),
+        .price = 0,
+        .description = COMPOUND_STRING("Porta subito\nal Pokémon\ncenter più vicino."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_TeleportTool,
+        .iconPic = gItemIcon_PokeVial,
+        .iconPalette = gItemIconPalette_PokeVial,
+    },
+
+    [ITEM_SWEET_SCENT_TOOL] =
+    {
+        .name = ITEM_NAME("Profumdolce"),
+        .price = 0,
+        .description = COMPOUND_STRING("Attira i\nPokémon\nselvatici."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_SweetScentTool,
+        .iconPic = gItemIcon_PokeVial,
+        .iconPalette = gItemIconPalette_PokeVial,
     },
 
 };

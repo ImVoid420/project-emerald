@@ -2742,4 +2742,21 @@
 	.byte \quest
 	.endm
 
+	@ checkfieldmovecanlearn <fieldMove>
+	@ Sets VAR_RESULT to the slot of the first party mon that can learn the
+	@ field move (via TM/Tutor/level-up), or PARTY_SIZE if none can.
+	@ Does NOT check mons that already know the move.
+	.macro checkfieldmovecanlearn fieldMove:req
+	.byte 0xeb
+	.byte \fieldMove
+	.endm
+
+	@ checkfieldmoveunlocked <fieldMove>
+	@ Sets VAR_RESULT to TRUE if the badge for this field move is obtained,
+	@ FALSE otherwise. Does NOT check if any party mon knows the move.
+	.macro checkfieldmoveunlocked fieldMove:req
+	.byte 0xec
+	.byte \fieldMove
+	.endm
+
 	.equ SIDE_QUEST_1, 0

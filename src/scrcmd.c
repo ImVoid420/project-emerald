@@ -41,6 +41,7 @@
 #include "pokedex.h"
 #include "pokemon_storage_system.h"
 #include "quests.h"
+#include "qol_field_moves.h"
 #include "random.h"
 #include "overworld.h"
 #include "rotating_tile_puzzle.h"
@@ -3339,5 +3340,26 @@ bool8 ScrCmd_rewardquest(struct ScriptContext *ctx)
 {
     u8 questId = ScriptReadByte(ctx);
     GetSetQuestFlag(questId, FLAG_SET_REWARDED);
+    return FALSE;
+}
+
+// 0xeb: checkfieldmovecanlearn <fieldMove>
+// Sets VAR_RESULT to the slot of the first party mon that can learn the move
+// (via TM/Tutor or level-up), or PARTY_SIZE if none can.
+// Skips mons that already know the move (they're handled by checkfieldmove).
+bool8 ScrCmd_checkfieldmovecanlearn(struct ScriptContext *ctx)
+{
+    enum FieldMove fieldMove = ScriptReadByte(ctx);
+    gSpecialVar_Result = QoL_PartyHasMonCanLearnFieldMove(fieldMove);
+    return FALSE;
+}
+
+// 0xec: checkfieldmoveunlocked <fieldMove>
+// Sets VAR_RESULT to TRUE if the badge requirement for this field move is met,
+// FALSE otherwise. Does NOT check if any party mon knows the move.
+bool8 ScrCmd_checkfieldmoveunlocked(struct ScriptContext *ctx)
+{
+    enum FieldMove fieldMove = ScriptReadByte(ctx);
+    gSpecialVar_Result = IsFieldMoveUnlocked(fieldMove);
     return FALSE;
 }

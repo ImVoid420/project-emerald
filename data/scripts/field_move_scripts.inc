@@ -1,18 +1,28 @@
 @ Interact with cuttable tree
 EventScript_CutTree::
 	lockall
-	checkfieldmove FIELD_MOVE_CUT, TRUE
-	goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_CheckTreeCantCut
-	setfieldeffectargument 0, VAR_RESULT
-	bufferpartymonnick STR_VAR_1, VAR_RESULT
-	buffermovename STR_VAR_2, MOVE_CUT
-	msgbox Text_WantToCut, MSGBOX_YESNO
-	goto_if_eq VAR_RESULT, NO, EventScript_CancelCut
-	msgbox Text_MonUsedFieldMove, MSGBOX_DEFAULT
-	closemessage
+	checkfieldmove FIELD_MOVE_CUT, TRUE  @ badge + mon check
+	goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_CutNoMon
+	setfieldeffectargument 0, VAR_RESULT @ mon knows Cut → use with mon, no dialog
+	goto EventScript_CutTreeCommon
+
+@ No mon knows Cut → check badge only (no Pokémon needed)
+EventScript_CutNoMon:
+	checkfieldmoveunlocked FIELD_MOVE_CUT
+	goto_if_eq VAR_RESULT, FALSE, EventScript_CheckTreeCantCut
+	setfieldeffectargument 0, PARTY_SIZE @ tool mode: no mon
+	setfieldeffectargument 3, 2          @ skip player pose + mon animation
+	dofieldeffect FLDEFF_USE_CUT_ON_TREE
+	waitstate
+	applymovement VAR_LAST_TALKED, Movement_CutTreeDown
+	waitmovement 0
+	removeobject VAR_LAST_TALKED
+	releaseall
+	end
+
 EventScript_CutTreeCommon:
 	isfollowerfieldmoveuser VAR_0x8004
-	setfieldeffectargument 3, VAR_0x8004 @ skip pose if so
+	setfieldeffectargument 3, VAR_0x8004 @ skip pose if follower uses it
 	dofieldeffect FLDEFF_USE_CUT_ON_TREE
 	waitstate
 EventScript_CutTreeDown:: @ fallthrough
@@ -38,19 +48,6 @@ EventScript_CheckTreeCantCut::
 	releaseall
 	end
 
-EventScript_CancelCut::
-	closemessage
-	releaseall
-	end
-
-Text_WantToCut:
-	.string "This tree looks like it can be\n"
-	.string "CUT down!\p"
-	.string "Would you like to CUT it?$"
-
-Text_MonUsedFieldMove:
-	.string "{STR_VAR_1} used {STR_VAR_2}!$"
-
 Text_CantCut:
 	.string "This tree looks like it can be\n"
 	.string "CUT down!$"
@@ -58,24 +55,28 @@ Text_CantCut:
 @ Use rock smash from party menu
 EventScript_UseRockSmash::
 	lockall
-	goto EventScript_RockSmashCommon
+EventScript_RockSmashCommon:
+	isfollowerfieldmoveuser VAR_0x8004
+	setfieldeffectargument 3, VAR_0x8004
+	goto EventScript_RockSmashDo
 
 @ Interact with smashable rock
 EventScript_RockSmash::
 	lockall
 	checkfieldmove FIELD_MOVE_ROCK_SMASH, TRUE
-	goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_CantSmashRock
-	setfieldeffectargument 0, VAR_RESULT
-	bufferpartymonnick STR_VAR_1, VAR_RESULT
-	buffermovename STR_VAR_2, MOVE_ROCK_SMASH
-	msgbox Text_WantToSmash, MSGBOX_YESNO
-	goto_if_eq VAR_RESULT, NO, EventScript_CancelSmash
-	msgbox Text_MonUsedFieldMove, MSGBOX_DEFAULT
-	closemessage
-EventScript_RockSmashCommon:
-	@ check if follower should use the field move
+	goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_RockSmashNoMon
+	setfieldeffectargument 0, VAR_RESULT    @ mon knows move → use with mon, no dialog
 	isfollowerfieldmoveuser VAR_0x8004
-	setfieldeffectargument 3, VAR_0x8004 @ skip pose if so
+	setfieldeffectargument 3, VAR_0x8004
+	goto EventScript_RockSmashDo
+
+EventScript_RockSmashNoMon:
+	checkfieldmoveunlocked FIELD_MOVE_ROCK_SMASH
+	goto_if_eq VAR_RESULT, FALSE, EventScript_CantSmashRock
+	setfieldeffectargument 0, PARTY_SIZE    @ no mon
+	setfieldeffectargument 3, 2             @ skip player pose + mon animation
+	setvar VAR_0x8004, 0                    @ no follower animation
+EventScript_RockSmashDo:
 	dofieldeffect FLDEFF_USE_ROCK_SMASH
 	waitstate
 EventScript_SmashRock:: @ fallthrough
@@ -208,15 +209,6 @@ EventScript_CantSmashRock::
 	releaseall
 	end
 
-EventScript_CancelSmash::
-	closemessage
-	releaseall
-	end
-
-Text_WantToSmash:
-	.string "This rock appears to be breakable.\n"
-	.string "Would you like to use ROCK SMASH?$"
-
 Text_CantSmash:
 	.string "It's a rugged rock, but a POKéMON\n"
 	.string "may be able to smash it.$"
@@ -225,28 +217,33 @@ EventScript_StrengthBoulder::
 	lockall
 	goto_if_set FLAG_SYS_USE_STRENGTH, EventScript_CheckActivatedBoulder
 	checkfieldmove FIELD_MOVE_STRENGTH, TRUE
-	goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_CantStrength
-	setfieldeffectargument 0, VAR_RESULT
-	msgbox Text_WantToStrength, MSGBOX_YESNO
-	goto_if_eq VAR_RESULT, NO, EventScript_CancelStrength
-	closemessage
+	goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_StrengthNoMon
+	setfieldeffectargument 0, VAR_RESULT    @ mon knows Strength → use, no dialog
+	isfollowerfieldmoveuser VAR_0x8004
+	setfieldeffectargument 3, VAR_0x8004
+	goto EventScript_StrengthDo
+
+EventScript_StrengthNoMon:
+	checkfieldmoveunlocked FIELD_MOVE_STRENGTH
+	goto_if_eq VAR_RESULT, FALSE, EventScript_CantStrength
+	setfieldeffectargument 0, PARTY_SIZE    @ no mon
+	setfieldeffectargument 3, 2             @ skip animations
+	setvar VAR_0x8004, 0                    @ no follower animation
+EventScript_StrengthDo:
 	dofieldeffect FLDEFF_USE_STRENGTH
 	waitstate
-	goto EventScript_ActivateStrength
+EventScript_ActivateStrength::
+	setflag FLAG_SYS_USE_STRENGTH
+	releaseall
 	end
 
 EventScript_UseStrength::
 	lockall
+	isfollowerfieldmoveuser VAR_0x8004
+	setfieldeffectargument 3, VAR_0x8004
 	dofieldeffect FLDEFF_USE_STRENGTH
 	waitstate
 	goto EventScript_ActivateStrength
-	end
-
-EventScript_ActivateStrength::
-	setflag FLAG_SYS_USE_STRENGTH
-	msgbox Text_MonUsedStrength, MSGBOX_DEFAULT
-	releaseall
-	end
 
 EventScript_CantStrength::
 	msgbox Text_CantStrength, MSGBOX_DEFAULT
@@ -258,21 +255,6 @@ EventScript_CheckActivatedBoulder::
 	releaseall
 	end
 
-EventScript_CancelStrength::
-	closemessage
-	releaseall
-	end
-
-Text_WantToStrength:
-	.string "It's a big boulder, but a POKéMON\n"
-	.string "may be able to push it aside.\p"
-	.string "Would you like to use STRENGTH?$"
-
-Text_MonUsedStrength:
-	.string "{STR_VAR_1} used STRENGTH!\p"
-	.string "{STR_VAR_1}'s STRENGTH made it\n"
-	.string "possible to move boulders around!$"
-
 Text_CantStrength:
 	.string "It's a big boulder, but a POKéMON\n"
 	.string "may be able to push it aside.$"
@@ -283,13 +265,16 @@ Text_StrengthActivated:
 
 EventScript_UseWaterfall::
 	lockall
-	checkfieldmove FIELD_MOVE_WATERFALL
-	goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_CantWaterfall
-	bufferpartymonnick STR_VAR_1, VAR_RESULT
-	setfieldeffectargument 0, VAR_RESULT
-	msgbox Text_WantToWaterfall, MSGBOX_YESNO
-	goto_if_eq VAR_RESULT, NO, EventScript_EndWaterfall
-	msgbox Text_MonUsedWaterfall, MSGBOX_DEFAULT
+	checkfieldmove FIELD_MOVE_WATERFALL, TRUE
+	goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_WaterfallNoMon
+	setfieldeffectargument 0, VAR_RESULT    @ mon knows Waterfall → use, no dialog
+	goto EventScript_WaterfallDoEffect
+
+EventScript_WaterfallNoMon:
+	checkfieldmoveunlocked FIELD_MOVE_WATERFALL
+	goto_if_eq VAR_RESULT, FALSE, EventScript_CantWaterfall
+	setfieldeffectargument 0, PARTY_SIZE    @ no mon
+EventScript_WaterfallDoEffect:
 	hidefollowernpc
 	dofieldeffect FLDEFF_USE_WATERFALL
 	callnative FollowerNPC_WarpSetEnd
@@ -309,30 +294,24 @@ Text_CantWaterfall:
 	.string "A wall of water is crashing down with\n"
 	.string "a mighty roar.$"
 
-Text_WantToWaterfall:
-	.string "It's a large waterfall.\n"
-	.string "Would you like to use WATERFALL?$"
-
-Text_MonUsedWaterfall:
-	.string "{STR_VAR_1} used WATERFALL.$"
-
 EventScript_UseDive::
 	lockall
-	checkfieldmove FIELD_MOVE_DIVE
-	goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_CantDive
-	copyvar 0x8004 VAR_RESULT
-	bufferpartymonnick STR_VAR_1, VAR_RESULT
-	setfieldeffectargument 0, VAR_RESULT
+	checkfieldmove FIELD_MOVE_DIVE, TRUE
+	goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_DiveNoMon
+	setfieldeffectargument 0, VAR_RESULT    @ mon knows Dive → use, no dialog
 	setfieldeffectargument 1, 1
-	msgbox Text_WantToDive, MSGBOX_YESNO
-	goto_if_eq VAR_RESULT, NO, EventScript_EndDive
-	msgbox Text_MonUsedDive, MSGBOX_DEFAULT
 	hidefollowernpc
-	setfieldeffectargument 0, VAR_0x8004
-	setfieldeffectargument 1, 1
 	dofieldeffect FLDEFF_USE_DIVE
 	goto EventScript_EndDive
-	end
+
+EventScript_DiveNoMon:
+	checkfieldmoveunlocked FIELD_MOVE_DIVE
+	goto_if_eq VAR_RESULT, FALSE, EventScript_CantDive
+	setfieldeffectargument 0, PARTY_SIZE    @ no mon (field_effect.c checks data[15])
+	setfieldeffectargument 1, 1
+	hidefollowernpc
+	dofieldeffect FLDEFF_USE_DIVE
+	goto EventScript_EndDive
 
 EventScript_CantDive::
 	msgbox Text_CantDive, MSGBOX_DEFAULT
@@ -345,24 +324,27 @@ EventScript_EndDive::
 
 EventScript_UseDiveUnderwater::
 	lockall
-	checkfieldmove FIELD_MOVE_DIVE
-	goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_CantSurface
-	bufferpartymonnick STR_VAR_1, VAR_RESULT
-	setfieldeffectargument 0, VAR_RESULT
+	checkfieldmove FIELD_MOVE_DIVE, TRUE
+	goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_DiveUnderwaterNoMon
+	setfieldeffectargument 0, VAR_RESULT    @ mon knows Dive → surface, no dialog
 	setfieldeffectargument 1, 1
-	msgbox Text_WantToSurface, MSGBOX_YESNO
-	goto_if_eq VAR_RESULT, NO, EventScript_NoSurface
-	msgbox Text_MonUsedDive, MSGBOX_DEFAULT
 	hidefollowernpc
 	dofieldeffect FLDEFF_USE_DIVE
 	goto EventScript_EndSurface
-	end
+
+EventScript_DiveUnderwaterNoMon:
+	checkfieldmoveunlocked FIELD_MOVE_DIVE
+	goto_if_eq VAR_RESULT, FALSE, EventScript_CantSurface
+	setfieldeffectargument 0, PARTY_SIZE    @ no mon
+	setfieldeffectargument 1, 1
+	hidefollowernpc
+	dofieldeffect FLDEFF_USE_DIVE
+	goto EventScript_EndSurface
 
 EventScript_CantSurface::
 	lockall
 	msgbox Text_CantSurface, MSGBOX_DEFAULT
 	goto EventScript_EndSurface
-	end
 
 EventScript_EndSurface::
 	callnative SetFollowerNPCSurfSpriteAfterDive
@@ -403,20 +385,12 @@ Text_CantDive:
 	.string "The sea is deep here. A POKéMON\n"
 	.string "may be able to go underwater.$"
 
-Text_WantToDive:
-	.string "The sea is deep here.\n"
-	.string "Would you like to use DIVE?$"
-
-Text_MonUsedDive:
-	.string "{STR_VAR_1} used DIVE.$"
-
 Text_CantSurface:
 	.string "Light is filtering down from above.\n"
 	.string "A POKéMON may be able to surface.$"
 
-Text_WantToSurface:
-	.string "Light is filtering down from above.\n"
-	.string "Would you like to use DIVE?$"
+Text_MonUsedFieldMove:
+	.string "{STR_VAR_1} used {STR_VAR_2}!$"
 
 EventScript_FailSweetScent::
 	msgbox Text_FailSweetScent, MSGBOX_SIGN

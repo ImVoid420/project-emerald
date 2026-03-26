@@ -1564,10 +1564,11 @@
 
 #define FLAG_QUEST_MENU_ACTIVE                      (SYSTEM_FLAGS + 0xA7) // Attiva quest menu
 
-#define FLAG_UNUSED_0x908                           (SYSTEM_FLAGS + 0xA8) // Unused Flag
-#define FLAG_UNUSED_0x909                           (SYSTEM_FLAGS + 0xA9) // Unused Flag
-#define FLAG_UNUSED_0x90A                           (SYSTEM_FLAGS + 0xAA) // Unused Flag
-#define FLAG_UNUSED_0x90B                           (SYSTEM_FLAGS + 0xAB) // Unused Flag
+// QoL Field Moves: tracks first use per map (enables silent repeat use)
+#define FLAG_SYS_USE_CUT                            (SYSTEM_FLAGS + 0xA8)
+#define FLAG_SYS_USE_SURF                           (SYSTEM_FLAGS + 0xA9)
+#define FLAG_SYS_USE_ROCK_SMASH                     (SYSTEM_FLAGS + 0xAA)
+#define FLAG_SYS_USE_WATERFALL                      (SYSTEM_FLAGS + 0xAB)
 #define FLAG_UNUSED_0x90C                           (SYSTEM_FLAGS + 0xAC) // Unused Flag
 #define FLAG_UNUSED_0x90D                           (SYSTEM_FLAGS + 0xAD) // Unused Flag
 #define FLAG_UNUSED_0x90E                           (SYSTEM_FLAGS + 0xAE) // Unused Flag
