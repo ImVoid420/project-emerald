@@ -8,11 +8,13 @@
 #include "gpu_regs.h"
 #include "metatile_behavior.h"
 #include "palette.h"
+#include "pokemon.h"
 #include "sound.h"
 #include "sprite.h"
 #include "trig.h"
 #include "constants/event_objects.h"
 #include "constants/field_effects.h"
+#include "constants/moves.h"
 #include "constants/rgb.h"
 #include "constants/songs.h"
 
@@ -1193,16 +1195,56 @@ static void UpdateAshFieldEffect_End(struct Sprite *sprite)
 u32 FldEff_SurfBlob(void)
 {
     u8 spriteId;
+    u16 species = SPECIES_NONE;
+    bool32 shiny = FALSE;
+    bool32 female = FALSE;
+    int i, j;
+
+    // Find the first able party Pokemon that knows Surf
+    for (i = 0; i < PARTY_SIZE; i++)
+    {
+        struct Pokemon *mon = &gPlayerParty[i];
+        if (GetMonData(mon, MON_DATA_SPECIES, NULL) == SPECIES_NONE)
+            continue;
+        if (GetMonData(mon, MON_DATA_HP, NULL) == 0)
+            continue;
+        for (j = 0; j < MAX_MON_MOVES; j++)
+        {
+            if (GetMonData(mon, MON_DATA_MOVE1 + j, NULL) == MOVE_SURF)
+            {
+                species = GetMonData(mon, MON_DATA_SPECIES, NULL);
+                shiny = IsMonShiny(mon);
+                female = (GetMonGender(mon) == MON_FEMALE);
+                break;
+            }
+        }
+        if (species != SPECIES_NONE)
+            break;
+    }
 
     SetSpritePosToOffsetMapCoords((s16 *)&gFieldEffectArguments[0], (s16 *)&gFieldEffectArguments[1], 8, 8);
-    spriteId = CreateSpriteAtEnd(gFieldEffectObjectTemplatePointers[FLDEFFOBJ_SURF_BLOB], gFieldEffectArguments[0], gFieldEffectArguments[1], 150);
+
+    if (species != SPECIES_NONE)
+    {
+        u16 graphicsId = species + OBJ_EVENT_MON;
+        if (shiny)
+            graphicsId += OBJ_EVENT_MON_SHINY;
+        if (female)
+            graphicsId += OBJ_EVENT_MON_FEMALE;
+        spriteId = CreateObjectGraphicsSpriteWithTag(graphicsId, UpdateSurfBlobFieldEffect, gFieldEffectArguments[0], gFieldEffectArguments[1], 150, TAG_NONE);
+    }
+    else
+    {
+        spriteId = CreateSpriteAtEnd(gFieldEffectObjectTemplatePointers[FLDEFFOBJ_SURF_BLOB], gFieldEffectArguments[0], gFieldEffectArguments[1], 150);
+    }
+
     if (spriteId != MAX_SPRITES)
     {
         struct Sprite *sprite = &gSprites[spriteId];
         sprite->coordOffsetEnabled = TRUE;
         sprite->sPlayerObjId = gFieldEffectArguments[2];
-        // Can use either gender's palette, so try to use the one that should be loaded
-        sprite->oam.paletteNum = LoadPlayerObjectEventPalette(gSaveBlock2Ptr->playerGender);
+        if (species == SPECIES_NONE)
+            sprite->oam.paletteNum = LoadPlayerObjectEventPalette(gSaveBlock2Ptr->playerGender);
         sprite->sVelocity = -1;
         sprite->sPrevX = -1;
         sprite->sPrevY = -1;
