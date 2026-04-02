@@ -1199,27 +1199,51 @@ u32 FldEff_SurfBlob(void)
     bool32 shiny = FALSE;
     bool32 female = FALSE;
     int i, j;
+    bool32 isLava = MetatileBehavior_IsLava(MapGridGetMetatileBehaviorAt(gFieldEffectArguments[0], gFieldEffectArguments[1]));
 
-    // Find the first able party Pokemon that knows Surf
-    for (i = 0; i < PARTY_SIZE; i++)
+    if (isLava)
     {
-        struct Pokemon *mon = &gPlayerParty[i];
-        if (GetMonData(mon, MON_DATA_SPECIES, NULL) == SPECIES_NONE)
-            continue;
-        if (GetMonData(mon, MON_DATA_HP, NULL) == 0)
-            continue;
-        for (j = 0; j < MAX_MON_MOVES; j++)
+        // Show the first alive Fire-type Pokemon
+        for (i = 0; i < PARTY_SIZE; i++)
         {
-            if (GetMonData(mon, MON_DATA_MOVE1 + j, NULL) == MOVE_SURF)
+            struct Pokemon *mon = &gPlayerParty[i];
+            u16 sp = GetMonData(mon, MON_DATA_SPECIES, NULL);
+            if (sp == SPECIES_NONE)
+                continue;
+            if (GetMonData(mon, MON_DATA_HP, NULL) == 0)
+                continue;
+            if (IsSpeciesOfType(sp, TYPE_FIRE))
             {
-                species = GetMonData(mon, MON_DATA_SPECIES, NULL);
+                species = sp;
                 shiny = IsMonShiny(mon);
                 female = (GetMonGender(mon) == MON_FEMALE);
                 break;
             }
         }
-        if (species != SPECIES_NONE)
-            break;
+    }
+    else
+    {
+        // Find the first able party Pokemon that knows Surf
+        for (i = 0; i < PARTY_SIZE; i++)
+        {
+            struct Pokemon *mon = &gPlayerParty[i];
+            if (GetMonData(mon, MON_DATA_SPECIES, NULL) == SPECIES_NONE)
+                continue;
+            if (GetMonData(mon, MON_DATA_HP, NULL) == 0)
+                continue;
+            for (j = 0; j < MAX_MON_MOVES; j++)
+            {
+                if (GetMonData(mon, MON_DATA_MOVE1 + j, NULL) == MOVE_SURF)
+                {
+                    species = GetMonData(mon, MON_DATA_SPECIES, NULL);
+                    shiny = IsMonShiny(mon);
+                    female = (GetMonGender(mon) == MON_FEMALE);
+                    break;
+                }
+            }
+            if (species != SPECIES_NONE)
+                break;
+        }
     }
 
     SetSpritePosToOffsetMapCoords((s16 *)&gFieldEffectArguments[0], (s16 *)&gFieldEffectArguments[1], 8, 8);

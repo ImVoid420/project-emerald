@@ -5,6 +5,7 @@
 #define TILE_FLAG_HAS_ENCOUNTERS (1 << 0)
 #define TILE_FLAG_SURFABLE       (1 << 1)
 #define TILE_FLAG_UNUSED         (1 << 2) // Roughly all of the traversable metatiles. Set but never read
+#define TILE_FLAG_LAVA           (1 << 3)
 
 static const u8 sTileBitAttributes[NUM_METATILE_BEHAVIORS] =
 {
@@ -134,6 +135,7 @@ static const u8 sTileBitAttributes[NUM_METATILE_BEHAVIORS] =
     [MB_SIDEWAYS_STAIRS_LEFT_SIDE_BOTTOM]   = TILE_FLAG_UNUSED,
     [MB_ROCK_STAIRS]                        = TILE_FLAG_UNUSED,
     [MB_ROCK_CLIMB]                         = TILE_FLAG_UNUSED,
+    [MB_LAVA]                               = TILE_FLAG_SURFABLE | TILE_FLAG_LAVA,
 };
 
 bool8 MetatileBehavior_IsATile(u8 metatileBehavior)
@@ -1547,6 +1549,14 @@ bool8 MetatileBehavior_IsRockStairs(u8 metatileBehavior)
 bool8 MetatileBehavior_IsRockClimbable(u8 metatileBehavior)
 {
     if (metatileBehavior == MB_ROCK_CLIMB)
+        return TRUE;
+    else
+        return FALSE;
+}
+
+bool8 MetatileBehavior_IsLava(u8 metatileBehavior)
+{
+    if ((sTileBitAttributes[metatileBehavior] & TILE_FLAG_LAVA))
         return TRUE;
     else
         return FALSE;

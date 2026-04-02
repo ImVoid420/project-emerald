@@ -1572,6 +1572,39 @@ bool8 IsPlayerFacingSurfableFishableWater(void)
         return FALSE;
 }
 
+bool8 IsPlayerFacingLava(void)
+{
+    struct ObjectEvent *playerObjEvent = &gObjectEvents[gPlayerAvatar.objectEventId];
+    s16 x = playerObjEvent->currentCoords.x;
+    s16 y = playerObjEvent->currentCoords.y;
+
+    MoveCoords(playerObjEvent->facingDirection, &x, &y);
+    if (GetCollisionAtCoords(playerObjEvent, x, y, playerObjEvent->facingDirection) == COLLISION_ELEVATION_MISMATCH
+     && PlayerGetElevation() == 3
+     && MetatileBehavior_IsLava(MapGridGetMetatileBehaviorAt(x, y)))
+        return TRUE;
+    else
+        return FALSE;
+}
+
+bool8 PartyHasLavaResistantMon(void)
+{
+    u8 i;
+
+    if (!TestPlayerAvatarFlags(PLAYER_AVATAR_FLAG_SURFING))
+    {
+        for (i = 0; i < PARTY_SIZE; i++)
+        {
+            u16 species = GetMonData(&gPlayerParty[i], MON_DATA_SPECIES);
+            if (species == SPECIES_NONE)
+                break;
+            if (GetMonData(&gPlayerParty[i], MON_DATA_HP) > 0 && IsSpeciesOfType(species, TYPE_FIRE))
+                return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 void ClearPlayerAvatarInfo(void)
 {
     memset(&gPlayerAvatar, 0, sizeof(struct PlayerAvatar));

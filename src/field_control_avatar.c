@@ -568,6 +568,9 @@ static const u8 *GetInteractedWaterScript(struct MapPosition *unused1, u8 metati
      )
         return EventScript_UseSurf;
 
+    if (IsFieldMoveUnlocked(FIELD_MOVE_SURF) && IsPlayerFacingLava() == TRUE && PartyHasLavaResistantMon() == TRUE)
+        return EventScript_UseSurf;
+
     if (MetatileBehavior_IsWaterfall(metatileBehavior) == TRUE
      && CheckFollowerNPCFlag(FOLLOWER_NPC_FLAG_CAN_WATERFALL)
      )

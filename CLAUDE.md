@@ -132,6 +132,87 @@ struct SideQuest {
 | 0x9CA | `trainerRematches[92]` | ridotto da 100 (78 usati, margine sufficiente) |
 | 0xA26 | `registeredItems[4]` | 4 slot × u16 = 8 byte |
 
+### BetterBag (8 tasche)
+- Ispirato a: https://github.com/AsparagusEduardo/pokeemerald/tree/BetterBag
+- File principali: `include/constants/item.h`, `include/global.h`, `src/item.c`, `src/item_menu.c`, `src/item_menu_icons.c`, `src/strings.c`, `src/data/items.h`
+
+#### Tasche (enum Pocket, 0-based)
+| Valore | Nome | Costante dimensione |
+|---|---|---|
+| 0 | ITEMS | `BAG_ITEMS_COUNT` = 30 |
+| 1 | MEDICINE | `BAG_MEDICINE_COUNT` = 25 |
+| 2 | POKÉ BALLS | `BAG_POKEBALLS_COUNT` = 16 |
+| 3 | BATTLE | `BAG_BATTLEITEMS_COUNT` = 20 |
+| 4 | BERRIES | `BAG_BERRIES_COUNT` = 46 |
+| 5 | TREASURES | `BAG_TREASURES_COUNT` = 25 |
+| 6 | TM/HM | `BAG_TMHM_COUNT` = 64 |
+| 7 | KEY ITEMS | `BAG_KEYITEMS_COUNT` = 30 |
+
+#### Classificazione automatica degli item
+Gli item sono stati riclassificati in `src/data/items.h` in base al campo `.sortType`:
+- `MEDICINE` ← `HEALTH_RECOVERY`, `STATUS_RECOVERY`, `PP_RECOVERY`
+- `BATTLE` ← `X_ITEM`, `AUX_ITEM`, `BATTLE_ITEM`, `FLUTE`
+- `TREASURES` ← `SELLABLE`, `SHARD`, `RELIC`, `FOSSIL`
+
+#### Note tecniche
+- `FREE_MYSTERY_EVENT_BUFFERS TRUE` in `include/config/save.h` — libera 1104 byte per compensare le 3 nuove tasche (+280 byte in SaveBlock1)
+- I puntini indicatore tasca vengono disegnati tutti all'apertura dello zaino (tutti inattivi), poi quello attivo viene evidenziato; evita il bug dei puntini "comparsi" navigando
+- `sBagSpriteAnimTable` in `src/item_menu_icons.c` usa designated initializers: le nuove tasche riusano `sSpriteAnim_Bag_Items` per evitare NULL/corruzione sprite
+
+### Surfable Pokémon
+- Ispirato a: https://github.com/Slawter666/pokeemerald/tree/surfable
+- File principale: `src/field_effect_helpers.c` (funzione `FldEff_SurfBlob`)
+- Usa il sistema `OW_POKEMON_OBJECT_EVENTS TRUE` già presente in pokeemerald-expansion
+
+#### Funzionamento
+Quando il giocatore sale sul surf, `FldEff_SurfBlob` cerca nella squadra il primo Pokémon vivo che conosce Surf. Se trovato, crea uno sprite overworld del Pokémon (con palette shiny se è shiny, female se è femmina) usando `CreateObjectGraphicsSpriteWithTag`. Il callback di movimento `UpdateSurfBlobFieldEffect` è lo stesso del blob originale (bobbing, sync posizione/animazione). Se nessun Pokémon con Surf è trovato (caso impossibile in gameplay normale), fa fallback al blob originale.
+
+#### Cosa testare
+- Surfa con un Pokémon non-shiny → vedi lo sprite del Pokémon
+- Surfa con un Pokémon shiny → palette shiny
+- Surfa con una Pokémon femmina con sprite diverso → sprite femmina
+- Il Pokémon bobba sull'acqua e si orienta nella direzione corretta
+
+### Lava Surfing
+- Ispirato a Pokémon Unbound
+- File modificati: `include/constants/metatile_behaviors.h`, `src/metatile_behavior.c`, `include/metatile_behavior.h`, `src/field_player_avatar.c`, `include/field_player_avatar.h`, `src/field_control_avatar.c`
+
+#### Funzionamento
+I tile di lava usano il comportamento `MB_LAVA`. Premendo A verso un tile `MB_LAVA`, se il giocatore ha in squadra un Pokémon di tipo Fuoco che conosce Surf, parte il surf normalmente (stessa animazione/HM). Senza un Pokémon Fuoco+Surf, l'interazione non fa nulla.
+
+#### Implementazione
+- `MB_LAVA` ha flags `TILE_FLAG_SURFABLE | TILE_FLAG_LAVA` — il giocatore può muoversi sul tile mentre surfa, e il tile è identificabile come lava
+- `MetatileBehavior_IsLava(u8)` — controlla `TILE_FLAG_LAVA`
+- `IsPlayerFacingLava()` — come `IsPlayerFacingSurfableFishableWater` ma per lava
+- `PartyHasFireMonWithSurf()` — cerca nella squadra un Pokémon Fuoco (`IsSpeciesOfType(species, TYPE_FIRE)`) con Surf
+- In `GetInteractedWaterScript` (`src/field_control_avatar.c`): se `IsPlayerFacingLava() && PartyHasFireMonWithSurf()` → avvia `EventScript_UseSurf`
+
+#### Come usare in Porymap
+Assegna il comportamento `MB_LAVA` ai tile di lava nella mappa. Il tile deve avere elevation 3 (come l'acqua) per far funzionare correttamente il sistema di collisione surf.
+
+#### ⚠️ BUG DESIGN — da rifare prima di testare
+L'implementazione attuale richiede un Pokémon Fuoco che conosca Surf (`PartyHasFireMonWithSurf`), ma i Pokémon Fuoco non imparano Surf naturalmente → la feature è inutilizzabile.
+
+**Design corretto da implementare:**
+1. Condizione attivazione: `IsFieldMoveUnlocked(FIELD_MOVE_SURF)` + `PartyHasLavaResistantMon()` (tipo Fuoco in squadra, senza richiedere la mossa Surf)
+2. Sprite mostrato: primo Pokémon di tipo adatto in squadra (non il Surf-user)
+
+**Modifiche necessarie:**
+- `PartyHasFireMonWithSurf()` → sostituire con `PartyHasLavaResistantMon()` che controlla solo il tipo (Fuoco, eventualmente anche Roccia/Terra), non la mossa
+- `GetInteractedWaterScript` in `src/field_control_avatar.c`: usare `IsFieldMoveUnlocked(FIELD_MOVE_SURF) && IsPlayerFacingLava() && PartyHasLavaResistantMon()`
+- `FldEff_SurfBlob` in `src/field_effect_helpers.c`: quando il giocatore è su tile `MB_LAVA`, cercare il primo Pokémon lava-resistente invece del Surf-user per lo sprite
+
+**Nota sprite surf su lava:** attualmente `FldEff_SurfBlob` mostra il primo Pokémon con Surf, quindi sull'acqua e sulla lava verrebbe mostrato lo stesso Pokémon. Con il fix, sulla lava verrà mostrato il Pokémon Fuoco.
+
+**Nota sprite sovrapposti:** alcuni Pokémon alti (es. Goodra) si sovrappongono bruttamente al personaggio perché `UpdateBobbingEffect` posiziona lo sprite con `y = playerSprite->y + 8`, pensato per sprite bassi/piatti. Kyogre e simili funzionano bene. Fix futuro: usare `graphicsInfo->height` per calcolare un offset y dinamico.
+
+## Gimmick di battaglia attivi
+| Gimmick | Stato | Config |
+|---|---|---|
+| Mega Evoluzioni | **Attive** | `P_MEGA_EVOLUTIONS TRUE` in `include/config/species_enabled.h` |
+| Z-Mosse | **Attive** (no toggle globale) | Sempre disponibili se il Pokémon le ha nei dati |
+| Dynamax/Gigamax | **Disabilitato in battaglia** | `B_FLAG_DYNAMAX_BATTLE 0` in `include/config/battle.h` — le forme Gigamax esistono nei dati (`P_GIGANTAMAX_FORMS TRUE`) ma il Dynamax non è attivabile in battaglia |
+
 ## Tool disponibili
 - **Porymap** — editor visuale per mappe, eventi, connessioni, wild encounters
 - **Tilemap Studio** — editor per tilemap/grafica
