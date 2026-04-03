@@ -27,6 +27,7 @@ bool32 SetUpFieldMove_Flash(void);
 void CB2_DoChangeMap(void);
 bool8 GetMapPairFadeToType(u8 _fromType, u8 _toType);
 bool8 GetMapPairFadeFromType(u8 _fromType, u8 _toType);
+void Task_EnterCaveTransition2(u8 taskId);
 
 // strength
 bool32 SetUpFieldMove_Strength(void);

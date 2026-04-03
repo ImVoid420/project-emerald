@@ -5,6 +5,8 @@ extern const s32 gMaxFlashLevel;
 
 void WarpFadeInScreen(void);
 void WarpFadeOutScreen(void);
+void FillPalBufferBlack(void);
+bool32 WaitForWeatherFadeIn(void);
 void FadeInFromBlack(void);
 void FadeInFromWhite(void);
 void FieldCB_ContinueScriptUnionRoom(void);
@@ -14,6 +16,7 @@ void Task_ReturnToFieldRecordMixing(u8 taskId);
 void FieldCB_ReturnToFieldCableLink(void);
 void FieldCB_ReturnToFieldWirelessLink(void);
 void FieldCB_DefaultWarpExit(void);
+void FieldCB_ForestMapPreview(void);
 void FieldCB_WarpExitFadeFromBlack(void);
 void FieldCB_WarpExitFadeFromWhite(void);
 void FieldCB_RushInjuredPokemonToCenter(void);
