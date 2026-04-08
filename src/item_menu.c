@@ -42,12 +42,14 @@
 #include "strings.h"
 #include "string_util.h"
 #include "task.h"
+#include "text.h"
 #include "text_window.h"
 #include "menu_helpers.h"
 #include "window.h"
 #include "apprentice.h"
 #include "battle_pike.h"
 #include "item_icon.h"
+#include "constants/characters.h"
 #include "constants/items.h"
 #include "constants/rgb.h"
 #include "constants/songs.h"
@@ -108,6 +110,7 @@ enum {
     WIN_TMHM_INFO_ICONS,
     WIN_TMHM_INFO,
     WIN_MESSAGE, // Identical to ITEMWIN_MESSAGE. Unused?
+    WIN_SORT_HINT,
 };
 
 // Item list ID for toSwapPos to indicate an item is not currently being swapped
@@ -135,6 +138,7 @@ static bool8 SetupBagMenu(void);
 static void BagMenu_InitBGs(void);
 static bool8 LoadBagMenu_Graphics(void);
 static void LoadBagMenuTextWindows(void);
+static void DrawSortHint(void);
 static void AllocateBagItemListBuffers(void);
 static void LoadBagItemListBuffers(u8);
 static void PrintPocketNames(const u8 *, const u8 *);
@@ -641,6 +645,15 @@ static const struct WindowTemplate sDefaultBagWindows[] =
         .height = 4,
         .paletteNum = 15,
         .baseBlock = 0x1B1,
+    },
+    [WIN_SORT_HINT] = {
+        .bg = 0,
+        .tilemapLeft = 14,
+        .tilemapTop = 0,
+        .width = 15,
+        .height = 3,
+        .paletteNum = 15,
+        .baseBlock = 0x259,
     },
     DUMMY_WIN_TEMPLATE,
 };
@@ -3004,13 +3017,44 @@ static void LoadBagMenuTextWindows(void)
     LoadMessageBoxGfx(0, 10, BG_PLTT_ID(13));
     ListMenuLoadStdPalAt(BG_PLTT_ID(12), 1);
     LoadPalette(&gStandardMenuPalette, BG_PLTT_ID(15), PLTT_SIZE_4BPP);
+    // idx2 of palette 15 = black text for sort hint (idx1 stays white for keypad icon)
+    gPlttBufferUnfaded[BG_PLTT_ID(15) + 2] = RGB_BLACK;
+    gPlttBufferFaded[BG_PLTT_ID(15) + 2] = RGB_BLACK;
     for (i = 0; i <= WIN_POCKET_NAME; i++)
     {
         FillWindowPixelBuffer(i, PIXEL_FILL(0));
         PutWindowTilemap(i);
     }
+    FillWindowPixelBuffer(WIN_SORT_HINT, PIXEL_FILL(0));
+    PutWindowTilemap(WIN_SORT_HINT);
+    DrawSortHint();
     ScheduleBgCopyTilemapToVram(0);
     ScheduleBgCopyTilemapToVram(1);
+}
+
+static void DrawSortHint(void)
+{
+    // Build: [START icon] + " : Ordina"
+    static const u8 sText_SortLabel[] = _(" : Ordina");
+    u8 buf[32];
+    u8 *p = buf;
+    const u8 *src;
+    // palette 15: idx1=white (keypad icon), idx2=black (text, overridden in LoadBagMenuTextWindows)
+    static const u8 color[3] = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_DARK_GRAY, TEXT_COLOR_LIGHT_GRAY};
+    s32 textWidth;
+    u8 x;
+
+    *p++ = CHAR_KEYPAD_ICON;
+    *p++ = CHAR_START_BUTTON;
+    for (src = sText_SortLabel; *src != EOS; src++) *p++ = *src;
+    *p = EOS;
+
+    // 24 = width of START keypad icon; right-align with 2px margin
+    textWidth = 24 + GetStringWidth(FONT_NARROW, sText_SortLabel, 0);
+    x = (sDefaultBagWindows[WIN_SORT_HINT].width * 8) - 2 - textWidth;
+
+    AddTextPrinterParameterized4(WIN_SORT_HINT, FONT_NARROW, x, 3, 0, 0, color, TEXT_SKIP_DRAW, buf);
+    CopyWindowToVram(WIN_SORT_HINT, COPYWIN_GFX);
 }
 
 static void BagMenu_Print(u8 windowId, u8 fontId, const u8 *str, u8 left, u8 top, u8 letterSpacing, u8 lineSpacing, u8 speed, u8 colorIndex)
