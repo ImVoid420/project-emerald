@@ -206,6 +206,33 @@ L'implementazione attuale richiede un Pokémon Fuoco che conosca Surf (`PartyHas
 
 **Nota sprite sovrapposti:** alcuni Pokémon alti (es. Goodra) si sovrappongono bruttamente al personaggio perché `UpdateBobbingEffect` posiziona lo sprite con `y = playerSprite->y + 8`, pensato per sprite bassi/piatti. Kyogre e simili funzionano bene. Fix futuro: usare `graphicsInfo->height` per calcolare un offset y dinamico.
 
+### Item Drop da selvatici
+- Ispirato a: https://github.com/AgustinGDLV/pokeemerald-rom-hack/compare/item_drops?expand=1
+- Quando un Pokémon selvatico che tiene un oggetto viene KO, l'oggetto va nello zaino del giocatore
+- Non funziona contro i trainer (`BATTLE_TYPE_TRAINER | BATTLE_TYPE_FIRST_BATTLE | BATTLE_TYPE_WALLY_TUTORIAL`)
+
+#### Implementazione
+- `BS_SaveFaintedBattlerItem` (native) — chiamata in `BattleScript_FaintBattler` subito dopo `printstring STRINGID_BATTLERFAINTED`; salva `gBattleMons[gBattlerFainted].item` in `gBattleHistory->heldItems[gBattlerFainted]`
+- `BS_GiveDroppedItems` (native) — chiamata tramite macro `givedroppeditems` in `BattleScript_PayDayMoneyAndPickUpItems` (fine battaglia); itera gli avversari (1 o 2 in doppio), chiama `AddBagItem`, poi esegue `BattleScript_ItemDropped` con `BattleScriptCall`
+- `BattleScript_ItemDropped` — suono + `printfromtable gItemDroppedStringIds` (B_MSG_ITEM_DROPPED o B_MSG_BAG_IS_FULL)
+- Stringa usa `{B_SCR_NAME_WITH_PREFIX}` (= `gBattleScripting.battler`, impostato a `battler` prima di `BattleScriptCall`) e `{B_LAST_ITEM}`
+
+#### File modificati
+- `asm/macros/battle_script.inc` — macro `savefaintedbattleritem` e `givedroppeditems`
+- `data/battle_scripts_1.s` — `savefaintedbattleritem` in `BattleScript_FaintBattler`, `givedroppeditems` in `BattleScript_PayDayMoneyAndPickUpItems`, `BattleScript_ItemDropped` aggiunto in fondo
+- `include/battle_scripts.h` — `extern BattleScript_ItemDropped[]`
+- `include/constants/battle_string_ids.h` — `STRINGID_PKMNDROPPEDITEM`, `STRINGID_BAGISFULL`, enum `ItemDroppedStringID`
+- `src/battle_message.c` — stringhe IT + `gItemDroppedStringIds`
+- `src/battle_script_commands.c` — `BS_SaveFaintedBattlerItem` e `BS_GiveDroppedItems`
+
+#### Note tecniche
+- In pokeemerald-expansion `Cmd_various` è deprecato → usare `callnative` per nuove funzioni
+- `B_SCR_ACTIVE_NAME_WITH_PREFIX` non esiste nel charmap → usare `{B_SCR_NAME_WITH_PREFIX}` (token `FD 13`) che legge `gBattleScripting.battler`
+- `savebattleritem` esistente usa `gBattlerTarget`, non `gBattlerFainted` → necessaria nuova native
+
+#### Come testare
+Trovare un Pokémon selvatico con held item (es. Zigzagoon su Route 101 tiene Potion al 50%, Shroomish in Petalburg Woods tiene Tiny Mushroom). Mandarlo KO → dovrebbe comparire il messaggio e l'item in zaino.
+
 ## Gimmick di battaglia attivi
 | Gimmick | Stato | Config |
 |---|---|---|
@@ -228,3 +255,13 @@ Aggiungere array extra a `SaveBlock2` può causare `size of array 'SaveBlock2Fre
 
 ### Icone tasto keypad nel testo
 Per mostrare icone grafiche dei tasti GBA in una stringa, serve la sequenza a due byte: `CHAR_KEYPAD_ICON (0xF8)` seguito dall'ID icona (`CHAR_R_BUTTON=0x03`, `CHAR_START_BUTTON=0x04`, `CHAR_SELECT_BUTTON=0x05`). Funzione: `DrawKeypadIcon` in `src/text.c`. Altezza icone: 12px (A/B=8px wide, L/R=16px, Start/Select=24px).
+
+### Token battle string nei COMPOUND_STRING
+I placeholder `{B_...}` nelle stringhe di battaglia sono risolti da `charmap.txt` (non da codice C). Solo i token definiti lì sono validi. Token utili: `{B_SCR_NAME_WITH_PREFIX}` = `FD 13` (usa `gBattleScripting.battler`), `{B_ATK_NAME_WITH_PREFIX}` = `FD 0F`, `{B_LAST_ITEM}` = `FD 16`, `{WAIT_SE}` = `FC 0A`. `B_SCR_ACTIVE_NAME_WITH_PREFIX` NON esiste nel charmap — usare `B_SCR_NAME_WITH_PREFIX`.
+
+### Bag menu — Sort hint (icona START + "Ordina")
+Finestra `WIN_SORT_HINT` in `src/item_menu.c` sopra la lista oggetti (lato destro dello schermo). Palette 15 modificata: idx1=bianco (icona), idx2=nero (testo, override con `RGB_BLACK` dopo `LoadPalette`). Finestra `tilemapTop=0, height=3` con testo a `y=3` per centrare visivamente nella striscia giallo scuro (tile row 1 = screen y=8-15). Allineamento a destra calcolato con `GetStringWidth`.
+
+## Cose da testare
+
+- **Item Drop da selvatici** — trovare un selvatico con held item (es. Zigzagoon su Route 101 tiene Potion al 50%, Shroomish in Petalburg Woods tiene Tiny Mushroom al 50%), mandarlo KO → deve comparire il messaggio "[Pokémon] ha lasciato cadere [oggetto]!" e l'item in zaino

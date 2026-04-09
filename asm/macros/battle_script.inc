@@ -2469,3 +2469,11 @@
 	.macro tryabsorbtoxicspikesonfaint
 	callnative BS_TryAbsorbToxicSpikesOnFaint
 	.endm
+
+	.macro givedroppeditems
+	callnative BS_GiveDroppedItems
+	.endm
+
+	.macro savefaintedbattleritem
+	callnative BS_SaveFaintedBattlerItem
+	.endm

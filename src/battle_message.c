@@ -873,6 +873,8 @@ const u8 *const gBattleStringsTable[STRINGID_COUNT] =
     [STRINGID_POWERCONSTRUCTPRESENCEOFMANY]         = COMPOUND_STRING("You sense the presence of many!"),
     [STRINGID_POWERCONSTRUCTTRANSFORM]              = COMPOUND_STRING("{B_ATK_NAME_WITH_PREFIX} transformed into its Complete Forme!"),
     [STRINGID_ABILITYSHIELDPROTECTS]                = COMPOUND_STRING("{B_ATK_NAME_WITH_PREFIX}'s Ability is protected by the effects of its {B_LAST_ITEM}!"),
+    [STRINGID_PKMNDROPPEDITEM]                      = COMPOUND_STRING("{B_SCR_NAME_WITH_PREFIX} ha lasciato\ncadere {B_LAST_ITEM}!{WAIT_SE}\p"),
+    [STRINGID_BAGISFULL]                            = COMPOUND_STRING("{B_SCR_NAME_WITH_PREFIX} ha lasciato\ncadere {B_LAST_ITEM}!{WAIT_SE}\pMa il tuo zaino è pieno!\p"),
 };
 
 const u16 gTrainerUsedItemStringIds[] =
@@ -1337,6 +1339,12 @@ const u16 gRoomsStringIds[] =
 const u16 gStatusConditionsStringIds[] =
 {
     STRINGID_PKMNWASPOISONED, STRINGID_PKMNBADLYPOISONED, STRINGID_PKMNWASBURNED, STRINGID_PKMNWASPARALYZED, STRINGID_PKMNFELLASLEEP, STRINGID_PKMNGOTFROSTBITE
+};
+
+const u16 gItemDroppedStringIds[] =
+{
+    [B_MSG_ITEM_DROPPED] = STRINGID_PKMNDROPPEDITEM,
+    [B_MSG_BAG_IS_FULL]  = STRINGID_BAGISFULL,
 };
 
 const u16 gDamageNonTypesStartStringIds[] =

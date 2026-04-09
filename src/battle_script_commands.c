@@ -18090,6 +18090,38 @@ void BS_SaveBattlerItem(void)
     gBattlescriptCurrInstr = cmd->nextInstr;
 }
 
+void BS_SaveFaintedBattlerItem(void)
+{
+    NATIVE_ARGS();
+    gBattleHistory->heldItems[gBattlerFainted] = gBattleMons[gBattlerFainted].item;
+    gBattlescriptCurrInstr = cmd->nextInstr;
+}
+
+void BS_GiveDroppedItems(void)
+{
+    NATIVE_ARGS();
+    u32 i;
+    u32 battlers[2] = {GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT),
+                       GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT)};
+    u32 count = 1 + IsDoubleBattle();
+
+    for (i = 0; i < count; i++)
+    {
+        u32 battler = battlers[i];
+        gLastUsedItem = gBattleHistory->heldItems[battler];
+        gBattleHistory->heldItems[battler] = ITEM_NONE;
+        if (gLastUsedItem != ITEM_NONE
+         && !(gBattleTypeFlags & (BATTLE_TYPE_TRAINER | BATTLE_TYPE_FIRST_BATTLE | BATTLE_TYPE_WALLY_TUTORIAL)))
+        {
+            gBattleCommunication[MULTISTRING_CHOOSER] = AddBagItem(gLastUsedItem, 1) ? B_MSG_ITEM_DROPPED : B_MSG_BAG_IS_FULL;
+            gBattleScripting.battler = battler;
+            BattleScriptCall(BattleScript_ItemDropped);
+            return;
+        }
+    }
+    gBattlescriptCurrInstr = cmd->nextInstr;
+}
+
 void BS_RestoreBattlerItem(void)
 {
     NATIVE_ARGS();

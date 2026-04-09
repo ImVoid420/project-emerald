@@ -4456,6 +4456,7 @@ BattleScript_FaintBattler::
 	dofaintanimation BS_FAINTED
 	copybyte sBATTLER, gBattlerFainted @ for message
 	printstring STRINGID_BATTLERFAINTED
+	savefaintedbattleritem
 	cleareffectsonfaint BS_FAINTED
 	trytoclearprimalweather
 	tryrevertweatherform
@@ -4600,6 +4601,7 @@ BattleScript_LocalBattleWonReward::
 	waitmessage B_WAIT_TIME_LONG
 BattleScript_PayDayMoneyAndPickUpItems::
 	givepaydaymoney
+	givedroppeditems
 	pickup
 	end2
 
@@ -8946,4 +8948,10 @@ BattleScript_SwapToSubstituteContinue:
 	playanimation BS_SCRIPTING, B_ANIM_SWAP_TO_SUBSTITUTE
 	waitanimation
 BattleScript_SwapToSubstituteReturn:
+	return
+
+BattleScript_ItemDropped::
+	playse SE_BALL_BOUNCE_1
+	printfromtable gItemDroppedStringIds
+	waitmessage B_WAIT_TIME_LONG
 	return
