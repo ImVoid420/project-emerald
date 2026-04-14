@@ -3022,6 +3022,8 @@ static void LoadBagMenuTextWindows(void)
     // idx2 of palette 15 = black text for sort hint (idx1 stays white for keypad icon)
     gPlttBufferUnfaded[BG_PLTT_ID(15) + 2] = RGB_BLACK;
     gPlttBufferFaded[BG_PLTT_ID(15) + 2] = RGB_BLACK;
+    gPlttBufferUnfaded[BG_PLTT_ID(15) + 3] = RGB(7, 13, 17);
+    gPlttBufferFaded[BG_PLTT_ID(15) + 3] = RGB(7, 13, 17);
     for (i = 0; i <= WIN_POCKET_NAME; i++)
     {
         FillWindowPixelBuffer(i, PIXEL_FILL(0));
@@ -3042,7 +3044,7 @@ static void DrawSortHint(void)
     u8 *p = buf;
     const u8 *src;
     // palette 15: idx1=white (keypad icon), idx2=black (text, overridden in LoadBagMenuTextWindows)
-    static const u8 color[3] = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_DARK_GRAY, TEXT_COLOR_LIGHT_GRAY};
+    static const u8 color[3] = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_WHITE, TEXT_COLOR_LIGHT_GRAY};
     s32 textWidth;
     u8 x;
 
