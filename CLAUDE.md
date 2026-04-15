@@ -137,16 +137,18 @@ struct SideQuest {
 - File principali: `include/constants/item.h`, `include/global.h`, `src/item.c`, `src/item_menu.c`, `src/item_menu_icons.c`, `src/strings.c`, `src/data/items.h`
 
 #### Tasche (enum Pocket, 0-based)
-| Valore | Nome | Costante dimensione |
+| Valore | Nome (IT) | Costante dimensione |
 |---|---|---|
-| 0 | ITEMS | `BAG_ITEMS_COUNT` = 30 |
-| 1 | MEDICINE | `BAG_MEDICINE_COUNT` = 25 |
-| 2 | POKÉ BALLS | `BAG_POKEBALLS_COUNT` = 16 |
-| 3 | BATTLE | `BAG_BATTLEITEMS_COUNT` = 20 |
-| 4 | BERRIES | `BAG_BERRIES_COUNT` = 46 |
-| 5 | TREASURES | `BAG_TREASURES_COUNT` = 25 |
-| 6 | TM/HM | `BAG_TMHM_COUNT` = 64 |
-| 7 | KEY ITEMS | `BAG_KEYITEMS_COUNT` = 30 |
+| 0 | Strumenti | `BAG_ITEMS_COUNT` = 30 |
+| 1 | Rimedi | `BAG_MEDICINE_COUNT` = 25 |
+| 2 | Poké Ball | `BAG_POKEBALLS_COUNT` = 16 |
+| 3 | St. Lotta | `BAG_BATTLEITEMS_COUNT` = 20 |
+| 4 | Bacche | `BAG_BERRIES_COUNT` = 46 |
+| 5 | Tesori | `BAG_TREASURES_COUNT` = 25 |
+| 6 | TM e HM | `BAG_TMHM_COUNT` = 64 |
+| 7 | Strum. Base | `BAG_KEYITEMS_COUNT` = 30 |
+
+I nomi delle tasche sono definiti in `src/strings.c` → `gPocketNamesStringsTable[]`.
 
 #### Classificazione automatica degli item
 Gli item sono stati riclassificati in `src/data/items.h` in base al campo `.sortType`:
@@ -158,6 +160,70 @@ Gli item sono stati riclassificati in `src/data/items.h` in base al campo `.sort
 - `FREE_MYSTERY_EVENT_BUFFERS TRUE` in `include/config/save.h` — libera 1104 byte per compensare le 3 nuove tasche (+280 byte in SaveBlock1)
 - I puntini indicatore tasca vengono disegnati tutti all'apertura dello zaino (tutti inattivi), poi quello attivo viene evidenziato; evita il bug dei puntini "comparsi" navigando
 - `sBagSpriteAnimTable` in `src/item_menu_icons.c` usa designated initializers: le nuove tasche riusano `sSpriteAnim_Bag_Items` per evitare NULL/corruzione sprite
+
+### UI personalizzata zaino (custom bag UI)
+Modifiche alla grafica e ai colori dello schermo zaino per il personaggio maschile. Il file femmina è ancora da fare (`graphics/bag/menu_female.gbapal`).
+
+#### File grafici principali
+- `graphics/bag/menu_male.gbapal` — **64 byte**, contiene DUE palette da 16 colori ciascuna (32 byte per palette):
+  - **Palette 0** (byte 0x00–0x1F): tileset di sfondo dello zaino
+  - **Palette 1** (byte 0x20–0x3F): finestre testo (item list, description, sort hint)
+- `graphics/bag/rotating_ball.gbapal` — palette della Poké Ball rotante (32 byte, 1 palette)
+- `graphics/bag/hm.png` — icona HM nella tasca TM/HM
+
+Questi file sono inclusi via `INCBIN_U16` / `INCBIN_U8` in `src/graphics.c`. **Dopo aver modificato un `.gbapal` o `.png`, bisogna fare `touch src/graphics.c && make -j$(nproc)`** altrimenti il file non viene ricompilato.
+
+#### Palette 0 di menu_male.gbapal (sfondo zaino)
+Stato attuale (byte 0x00–0x1F):
+```
+8c39 ff7f 3967 9452 ef3d 8c39 e520 a745
+4539 4a29 8410 a745 a745 4539 ff7f 0000
+```
+Indici rilevanti: 7=`#396a8b`, 8=`#295273` (colori sfondo puntini tasca — vedi sezione dedicata).
+
+#### Palette 1 di menu_male.gbapal (testo/finestre)
+Stato attuale (byte 0x20–0x3F):
+```
+8c39 ff7f 0000 a745 a745 1f00 5a67 4539
+0000 3d43 4a29 0b3c a745 4539 1f00 a745
+```
+| Idx | Valore | Colore | Uso |
+|-----|--------|--------|-----|
+| 0 | `8C39` | `#396a8b` | trasparente/bg |
+| 1 | `FF7F` | bianco | testo item, quantità, nome tasca |
+| 2 | `0000` | nero | shadow testo (TEXT_COLOR_DARK_GRAY=2) |
+| 3 | `A745` | `#396a8b` | shadow testo normale (TEXT_COLOR_LIGHT_GRAY=3) |
+| 4 | `A745` | `#396a8b` | shadow nome tasca (TEXT_COLOR_RED=4 in questo contesto) |
+| 5 | `1F00` | rosso | (TEXT_COLOR_GREEN=5… attenzione: vedere nota sotto) |
+| 6 | `5A67` | grigio | shadow descrizione (TEXT_COLOR_GREEN=6) |
+| 10 | `4A29` | `#505050` | bordo icona HM |
+| 12 | `A745` | `#396a8b` | sfondo puntino tasca inattivo |
+| 13 | `4539` | `#295273` | sfondo puntino tasca attivo |
+| 15 | `A745` | `#396a8b` | scritta "HM" nell'icona HM |
+
+**Attenzione:** `TEXT_COLOR_GREEN` vale **6** (non 5). Mettere il colore sbagliato all'indice 5 anziché 6 causa shadow errate nella descrizione.
+
+#### Puntini indicatore tasca — come funziona
+I puntini che indicano la tasca attiva sono disegnati da `DrawPocketIndicatorSquare` in `src/item_menu.c`. Il tile usato è `0x1017` (attivo) e `0x102B` (inattivo). Il nibble alto `0x1___` indica che il tile usa la **palette 1** (bit 12-15 del tile entry = numero palette BG). Quindi i colori di sfondo dei puntini vengono dalla **palette 1**, non dalla palette 0.
+
+- **Puntino inattivo**: sfondo = palette 1, indice 12 → impostare all'indice 12 (byte 0x38–0x39 del file)
+- **Puntino attivo**: sfondo = palette 1, indice 13 → impostare all'indice 13 (byte 0x3A–0x3B del file)
+
+Per lo zaino femminile (`menu_female.gbapal`) vale la stessa logica: i puntini usano la palette 1 del file femmina, indici 12 e 13.
+
+#### Icona HM
+`graphics/bag/hm.png` — icona 4bpp disegnata con `BlitBitmapToWindow` usando la palette 1 di `menu_male.gbapal`.
+- **Indice 1 del PNG = bianco** (TEXT_COLOR_WHITE=1 nella palette 1) → NON usare indice 1 per lo sfondo, altrimenti appare bianco
+- **Indice 2 del PNG = nero** → usare indice 2 per i pixel di sfondo dell'icona
+- **Indice 10** = `#505050` (bordo), **indice 15** = `#396a8b` (scritta "HM")
+
+Per modificare `hm.png`: aprire in GIMP come immagine indicizzata, spostare i pixel di sfondo dall'indice 1 all'indice 2, esportare come PNG indicizzato.
+
+#### Colori testo descrizione
+`PrintItemDescription` usa `COLORID_DESCRIPTION` → fg=`TEXT_COLOR_DARK_GRAY` (2=nero), shadow=`TEXT_COLOR_GREEN` (6=grigio `5A67`). Definito in `sFontColorTable` in `src/item_menu.c`.
+
+#### Numerazione HM
+`ConvertIntToDecimalStringN(..., 2)` per mostrare "HM03" invece di "HM3" — il `2` è il numero di cifre con leading zero. Riga ~1129 di `src/item_menu.c`.
 
 ### Surfable Pokémon
 - Ispirato a: https://github.com/Slawter666/pokeemerald/tree/surfable
