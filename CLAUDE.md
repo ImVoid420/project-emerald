@@ -220,10 +220,128 @@ Per lo zaino femminile (`menu_female.gbapal`) vale la stessa logica: i puntini u
 Per modificare `hm.png`: aprire in GIMP come immagine indicizzata, spostare i pixel di sfondo dall'indice 1 all'indice 2, esportare come PNG indicizzato.
 
 #### Colori testo descrizione
-`PrintItemDescription` usa `COLORID_DESCRIPTION` → fg=`TEXT_COLOR_DARK_GRAY` (2=nero), shadow=`TEXT_COLOR_GREEN` (6=grigio `5A67`). Definito in `sFontColorTable` in `src/item_menu.c`.
+`PrintItemDescription` usa `COLORID_DESCRIPTION` → fg=`TEXT_COLOR_DARK_GRAY` (2=nero), shadow=`TEXT_COLOR_GREEN` (6=grigio `D6D6CE`). Tutti i testi in `WIN_DESCRIPTION` usano `COLORID_DESCRIPTION` (non `COLORID_NORMAL`). Definito in `sFontColorTable` in `src/item_menu.c`.
 
 #### Numerazione HM
 `ConvertIntToDecimalStringN(..., 2)` per mostrare "HM03" invece di "HM3" — il `2` è il numero di cifre con leading zero. Riga ~1129 di `src/item_menu.c`.
+
+---
+
+## Sistema Dark Mode — Colori Maschio/Femmina
+
+Il gioco usa due schemi cromatici distinti in base al genere del giocatore:
+- **Maschio**: toni azzurro/blu (`#396a8b` primario, `#295273` scuro)
+- **Femmina**: toni viola/rosa (`#B64BDF` primario, `#8419AE` scuro, `#FF18AD` ombre testo)
+
+Questo sistema è attualmente implementato nello zaino ma va esteso ad altre schermate (quest menu, party menu, ecc.).
+
+### Colori base per genere
+
+| Ruolo | Maschio | Femmina | `RGB()` maschio | `RGB()` femmina |
+|-------|---------|---------|-----------------|-----------------|
+| Primario (sfondi, ombre) | `#396a8b` | `#B64BDF` | `RGB(7, 13, 17)` | `RGB(22, 9, 27)` |
+| Secondario/scuro | `#295273` | `#8419AE` | `RGB(5, 10, 13)` | `RGB(16, 3, 21)` |
+| Ombra testo | `#396a8b` | `#FF18AD` | `RGB(7, 13, 17)` | `RGB(31, 3, 21)` |
+| Neutro grigio medio | `#505050` | `#505050` | `RGB(10, 10, 10)` | `RGB(10, 10, 10)` |
+| Neutro grigio scuro | `#252525` | `#252525` | `RGB(4, 4, 4)` | `RGB(4, 4, 4)` |
+| Ombra grigio chiaro (descrizioni/contesto) | `#D6D6CE` | `#D6D6CE` | `RGB(26, 26, 25)` | `RGB(26, 26, 25)` |
+
+### Come applicare a runtime (senza modificare .gbapal)
+```c
+u16 colorPrimary = (gSaveBlock2Ptr->playerGender == MALE)
+    ? RGB(7, 13, 17)   // #396a8b azzurro
+    : RGB(22, 9, 27);  // #B64BDF viola chiaro
+
+u16 colorDark = (gSaveBlock2Ptr->playerGender == MALE)
+    ? RGB(5, 10, 13)   // #295273 azzurro scuro
+    : RGB(16, 3, 21);  // #8419AE viola scuro
+
+u16 colorShadowText = (gSaveBlock2Ptr->playerGender == MALE)
+    ? RGB(7, 13, 17)   // #396a8b
+    : RGB(31, 3, 21);  // #FF18AD rosa
+```
+
+### Palette 1 zaino — layout completo per entrambi i generi
+File: `graphics/bag/menu_male.gbapal` e `graphics/bag/menu_female.gbapal` (byte 0x20–0x3F)
+
+| Idx | Costante GBA | Maschio | Femmina | Ruolo |
+|-----|-------------|---------|---------|-------|
+| 0 | `TEXT_COLOR_TRANSPARENT` | `#396a8b` | `#396a8b` | Trasparente/bg finestre |
+| 1 | `TEXT_COLOR_WHITE` | `#FFFFFF` | `#FFFFFF` | Testo fg bianco (nomi oggetti, quantità, nome tasca) |
+| 2 | `TEXT_COLOR_DARK_GRAY` | `#000000` | `#000000` | Testo fg nero (descrizione, "is selected") |
+| 3 | `TEXT_COLOR_LIGHT_GRAY` | `#396a8b` | `#FF18AD` | **Shadow testo bianco** (`COLORID_NORMAL`, `COLORID_POCKET_NAME`) |
+| 4 | `TEXT_COLOR_RED` | `#396a8b` | `#FF18AD` | Shadow nome tasca (`COLORID_POCKET_NAME`) |
+| 5 | — | `#396a8b` | `#B64BDF` | **Sfondo icona SEL** (usato da `select_button*.4bpp`) |
+| 6 | `TEXT_COLOR_GREEN` | `#D6D6CE` | `#D6D6CE` | **Shadow testo nero** (`COLORID_DESCRIPTION`) |
+| 7 | — | `#295273` | `#B64BDF` | Colore secondario (bordo slot ↑ `select_button.4bpp`) |
+| 8 | — | `#000000` | `#8419AE` | — |
+| 9 | — | `#505050` | `#505050` | Grigio medio |
+| 10 | — | `#505050` | `#505050` | Grigio bordo icona HM / bordo slot ↑ |
+| 11 | — | `#396a8b` | `#B64BDF` | — |
+| 12 | — | `#396a8b` | `#B64BDF` | **Sfondo puntino tasca inattivo** |
+| 13 | — | `#295273` | `#8419AE` | **Sfondo puntino tasca attivo** |
+| 14 | — | `#FF0000` | `#FF0000` | Inutilizzato |
+| 15 | — | `#396a8b` | `#396a8b` | Scritta "HM" nell'icona HM |
+
+### Palette 0 zaino — layout completo per entrambi i generi
+File: `graphics/bag/menu_male.gbapal` e `graphics/bag/menu_female.gbapal` (byte 0x00–0x1F)
+
+| Idx | Maschio | Femmina | Ruolo |
+|-----|---------|---------|-------|
+| 6 | `#20e520` | `#1cc71c` | Colore UI specifico del personaggio |
+| 7 | `#396a8b` | `#B64BDF` | **Sfondo principale zaino** |
+| 8 | `#295273` | `#8419AE` | **Sfondo secondario/scuro zaino** |
+| 9 | `#505050` | `#505050` | Grigio medio |
+| 10 | `#252525` | `#252525` | Grigio scuro/quasi nero |
+| 11 | `#396a8b` | `#B64BDF` | — |
+| 12 | `#396a8b` | `#B64BDF` | — |
+| 13 | `#295273` | `#8419AE` | — |
+| 14 | `#FFFFFF` | `#FFFFFF` | Bianco |
+
+### Palette 15 — Sort hint e box contesto (runtime override)
+Caricata da `gStandardMenuPalette` (`graphics/interface/std_menu.gbapal`), poi sovrascritta a runtime in `LoadBagMenuTextWindows` in `src/item_menu.c`.
+
+| Idx | Maschio | Femmina | Ruolo |
+|-----|---------|---------|-------|
+| 1 | `#FFFFFF` | `#FFFFFF` | Icona keypad START (fg) |
+| 2 | `#000000` | `#000000` | Testo sort hint e box contesto (fg) |
+| 3 | `#D6D6CE` | `#D6D6CE` | Shadow box contesto USE/CANCEL/DESELECT |
+| 4 | `#396a8b` | `#FF18AD` | **Shadow sort hint ": Ordina"** |
+
+`DrawSortHint` usa `TEXT_COLOR_RED` (idx 4) come shadow — così idx 3 e idx 4 sono separati e il box contesto non prende il colore di genere.
+
+### Icone SEL registrate — `select_button*.4bpp`
+File: `graphics/bag/select_button.4bpp` (slot ↑), `select_button_right.4bpp` (→), `select_button_down.4bpp` (↓), `select_button_left.4bpp` (←)
+
+- `select_button.4bpp` usa indici **1** (testo), **5** (sfondo), **10** (bordo)
+- Gli altri tre usano indici **1** (testo), **5** (sfondo), **6** (bordo)
+- Tutti disegnati con `BlitBitmapToWindow` su `WIN_ITEM_LIST` → usano palette 1
+
+### Regola generale per estendere il sistema a nuove schermate
+
+1. **Carica la palette della finestra** (es. `LoadPalette(...)`)
+2. **Dopo il caricamento**, sovrascrive a runtime gli indici critici:
+   - `idx1 = #FFFFFF` — testo fg bianco
+   - `idx3 = colorShadowText` — shadow testo bianco (varia per genere)
+   - `idx2 = #000000` — testo fg nero (se serve)
+   - `idx6 = #D6D6CE` — shadow testo nero (uguale per entrambi)
+   - `idx12/13 = colorPrimary/colorDark` — sfondi puntini o elementi UI
+3. **Controlla il genere** con `gSaveBlock2Ptr->playerGender == MALE`
+4. **Non modificare mai gli indici 0 e 15** (trasparente e colore speciale)
+
+### File rilevanti
+| File | Ruolo |
+|------|-------|
+| `graphics/bag/menu_male.gbapal` | Palette zaino maschio (64 byte, 2 palette) |
+| `graphics/bag/menu_female.gbapal` | Palette zaino femmina (64 byte, 2 palette) |
+| `graphics/bag/rotating_ball.gbapal` | Palette Poké Ball rotante (32 byte) |
+| `graphics/bag/hm.png` | Icona HM (4bpp indicizzato, usa palette 1 zaino) |
+| `graphics/bag/select_button*.4bpp` | Icone SEL direzionali (4 file) |
+| `graphics/bag/key_item_box.gbapal` | Palette sprite box key item wheel |
+| `graphics/interface/std_menu.gbapal` | Base palette 15 (sort hint / box contesto) |
+| `graphics/interface/menu_info2.gbapal` | Base palette 12 (list menu standard) |
+| `src/item_menu.c` | Logica bag menu, `LoadBagMenuTextWindows`, `DrawSortHint`, `sFontColorTable` |
+| `src/graphics.c` | `INCBIN` di tutti i `.gbapal` e `.4bpp` — **fare `touch src/graphics.c` dopo ogni modifica** |
 
 ### Surfable Pokémon
 - Ispirato a: https://github.com/Slawter666/pokeemerald/tree/surfable

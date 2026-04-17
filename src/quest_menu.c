@@ -30,16 +30,16 @@ extern const u32 gQuestMenu_Gfx[];
 extern const u32 gQuestMenu_Tilemap[];
 extern const u32 gQuestMenu_Pal[];
 
-// Palette 15: lista quest — idx1=nero, idx4=rosso, idx5=verde
+// Palette 15: lista quest — idx1=bianco (testo), idx4=rosso (stato reward), idx5=verde (stato rewarded)
 static const u16 sBlackColor[]  = {RGB_BLACK};
 static const u16 sRedColor[]    = {RGB(28, 4, 4)};
 static const u16 sGreenColor[]  = {RGB(4, 22, 4)};
 
-static const u8 sQuestTextColor[3]        = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_WHITE,       TEXT_COLOR_LIGHT_GRAY};
-static const u8 sQuestStatusRedColor[3]   = {TEXT_COLOR_TRANSPARENT, 4,                      TEXT_COLOR_LIGHT_GRAY};
-static const u8 sQuestStatusGreenColor[3] = {TEXT_COLOR_TRANSPARENT, 5,                      TEXT_COLOR_LIGHT_GRAY};
+static const u8 sQuestTextColor[3]        = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_WHITE, TEXT_COLOR_DARK_GRAY};
+static const u8 sQuestStatusRedColor[3]   = {TEXT_COLOR_TRANSPARENT, 4, TEXT_COLOR_DARK_GRAY};
+static const u8 sQuestStatusGreenColor[3] = {TEXT_COLOR_TRANSPARENT, 5, TEXT_COLOR_DARK_GRAY};
 // Palette 13: header — icone chiare (idx1=bianco standard), testo nero a idx2
-static const u8 sHeaderTextColor[3]       = {TEXT_COLOR_TRANSPARENT, 2,                      TEXT_COLOR_LIGHT_GRAY};
+static const u8 sHeaderTextColor[3]       = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_WHITE, TEXT_COLOR_DARK_GRAY};
 // Palette 14: dettagli quest — testo bianco su sfondo blu
 static const u8 sQuestDetailColor[3]      = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_WHITE, TEXT_COLOR_DARK_GRAY};
 
@@ -362,8 +362,6 @@ static void BuildHintString(u8 *buf)
 
     *p++ = CHAR_KEYPAD_ICON; *p++ = CHAR_R_BUTTON;
     for (src = sText_HintR;  *src != EOS; src++) *p++ = *src;
-    *p++ = CHAR_KEYPAD_ICON; *p++ = CHAR_START_BUTTON;
-    for (src = sText_HintSt; *src != EOS; src++) *p++ = *src;
     *p = EOS;
 }
 
@@ -460,13 +458,14 @@ static void QuestMenu_MainCB(void)
             LoadPalette(gQuestMenu_Pal, 0, 32);
             // Slot 15: lista quest
             Menu_LoadStdPalAt(BG_PLTT_ID(15));
-            LoadPalette(sBlackColor,  BG_PLTT_ID(15) + 1, sizeof(u16));
+            // idx1 = bianco (testo lista quest), idx2 = nero (ombra)
+            LoadPalette(sBlackColor,  BG_PLTT_ID(15) + 2, sizeof(u16));
             LoadPalette(sRedColor,    BG_PLTT_ID(15) + 4, sizeof(u16));
             LoadPalette(sGreenColor,  BG_PLTT_ID(15) + 5, sizeof(u16));
-            // Slot 13: header — idx1=bianco (icone chiare), idx2=nero (testo)
+            // Slot 13: header — idx1=bianco (icone chiare), idx2=nero (testo e ombra)
             Menu_LoadStdPalAt(BG_PLTT_ID(13));
             LoadPalette(sBlackColor, BG_PLTT_ID(13) + 2, sizeof(u16));
-            // Slot 14: dettagli quest
+            // Slot 14: dettagli quest — idx1=bianco (testo), idx2=nero (ombra)
             Menu_LoadStdPalAt(BG_PLTT_ID(14));
             LoadPalette(sBlackColor,  BG_PLTT_ID(14) + 2, sizeof(u16));
             // Forza il buffer faded a nero prima del VBlank
@@ -547,15 +546,7 @@ static void QuestMenu_MainCB(void)
                 PrintQuestDetails();
                 ShowNpcSprite();
             }
-            else if (JOY_NEW(START_BUTTON))
-            {
-                PlaySE(SE_SELECT);
-                sSortAlpha = !sSortAlpha;
-                BuildUnlockedQuestList();
-                PrintQuestsList();
-                PrintQuestDetails();
-                ShowNpcSprite();
-            }
+
             else if (JOY_NEW(B_BUTTON))
             {
                 PlaySE(SE_SELECT);
