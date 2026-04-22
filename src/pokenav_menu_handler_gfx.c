@@ -1264,7 +1264,12 @@ static void DestroyMovingDotsBgTask(void)
 
 static void Task_MoveBgDots(u8 taskId)
 {
-    ChangeBgX(3, 0x80, BG_COORD_ADD);
+    gTasks[taskId].data[0] += 0x40;
+    if (gTasks[taskId].data[0] >= 0x100)
+    {
+        ChangeBgX(3, gTasks[taskId].data[0] & ~0xFF, BG_COORD_ADD);
+        gTasks[taskId].data[0] &= 0xFF;
+    }
 }
 
 static void CreateBgDotPurplePalTask(void)
