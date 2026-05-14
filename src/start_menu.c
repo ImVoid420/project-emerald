@@ -90,7 +90,7 @@ EWRAM_DATA static u8 sSafariBallsWindowId = 0;
 EWRAM_DATA static u8 sBattlePyramidFloorWindowId = 0;
 EWRAM_DATA static u8 sStartMenuCursorPos = 0;
 EWRAM_DATA static u8 sNumStartMenuActions = 0;
-EWRAM_DATA static u8 sCurrentStartMenuActions[9] = {0};
+EWRAM_DATA static u8 sCurrentStartMenuActions[10] = {0};
 EWRAM_DATA static s8 sInitStartMenuData[2] = {0};
 
 EWRAM_DATA static u8 (*sSaveDialogCallback)(void) = NULL;
@@ -267,6 +267,10 @@ static bool32 PrintStartMenuActions(s8 *pIndex, u32 count);
 static bool32 InitStartMenuStep(void);
 static void InitStartMenu(void);
 static void CreateStartMenuTask(TaskFunc followupFunc);
+static void InitStartMenuGridCursor(void);
+static void MoveStartMenuGridCursor(s8 delta);
+static void MoveStartMenuGridCursorHorizontal(s8 delta);
+static void DrawStartMenuGridCursor(u8 oldPos, u8 newPos);
 static void InitSave(void);
 static u8 RunSaveCallback(void);
 static void ShowSaveMessage(const u8 *message, u8 (*saveCallback)(void));
@@ -344,7 +348,9 @@ static void BuildNormalStartMenu(void)
     if (FlagGet(FLAG_SYS_POKEMON_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKEMON);
 
-    AddStartMenuAction(MENU_ACTION_QUESTS);    
+    if (FlagGet(FLAG_QUEST_MENU_ACTIVE) == TRUE)
+        AddStartMenuAction(MENU_ACTION_QUESTS);
+
     AddStartMenuAction(MENU_ACTION_BAG);
 
     if (FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
@@ -484,17 +490,21 @@ static void RemoveExtraStartMenuWindows(void)
 static bool32 PrintStartMenuActions(s8 *pIndex, u32 count)
 {
     s8 index = *pIndex;
+    u8 x, y;
 
     do
     {
+        x = ((index % 2) * 56) + 8;
+        y = ((index / 2) << 4) + 9;
+
         if (sStartMenuItems[sCurrentStartMenuActions[index]].func.u8_void == StartMenuPlayerNameCallback)
         {
-            PrintPlayerNameOnWindow(GetStartMenuWindowId(), sStartMenuItems[sCurrentStartMenuActions[index]].text, 8, (index << 4) + 9);
+            PrintPlayerNameOnWindow(GetStartMenuWindowId(), sStartMenuItems[sCurrentStartMenuActions[index]].text, x, y);
         }
         else
         {
             StringExpandPlaceholders(gStringVar4, sStartMenuItems[sCurrentStartMenuActions[index]].text);
-            AddTextPrinterParameterized(GetStartMenuWindowId(), FONT_NORMAL, gStringVar4, 8, (index << 4) + 9, TEXT_SKIP_DRAW, NULL);
+            AddTextPrinterParameterized(GetStartMenuWindowId(), FONT_NORMAL, gStringVar4, x, y, TEXT_SKIP_DRAW, NULL);
         }
 
         index++;
@@ -510,6 +520,72 @@ static bool32 PrintStartMenuActions(s8 *pIndex, u32 count)
 
     *pIndex = index;
     return FALSE;
+}
+
+static void DrawStartMenuGridCursor(u8 oldPos, u8 newPos)
+{
+    u8 oldX = (oldPos % 2) * 56;
+    u8 oldY = ((oldPos / 2) << 4) + 9;
+    u8 newX = (newPos % 2) * 56;
+    u8 newY = ((newPos / 2) << 4) + 9;
+
+    FillWindowPixelRect(GetStartMenuWindowId(), PIXEL_FILL(1), oldX, oldY, 8, 16);
+    AddTextPrinterParameterized(GetStartMenuWindowId(), FONT_NORMAL, gText_SelectorArrow3, newX, newY, 0, 0);
+    CopyWindowToVram(GetStartMenuWindowId(), COPYWIN_GFX);
+}
+
+static void InitStartMenuGridCursor(void)
+{
+    if (sStartMenuCursorPos >= sNumStartMenuActions)
+        sStartMenuCursorPos = 0;
+
+    DrawStartMenuGridCursor(sStartMenuCursorPos, sStartMenuCursorPos);
+}
+
+static void MoveStartMenuGridCursor(s8 delta)
+{
+    u8 oldPos = sStartMenuCursorPos;
+    s16 newPos = sStartMenuCursorPos + delta;
+
+    if (newPos < 0)
+    {
+        if ((sNumStartMenuActions & 1) && sStartMenuCursorPos == 0)
+            newPos = sNumStartMenuActions - 1;
+        else if (sNumStartMenuActions & 1)
+            newPos = sNumStartMenuActions - 2;
+        else
+            newPos = sNumStartMenuActions - 2 + sStartMenuCursorPos;
+    }
+    else if (newPos >= sNumStartMenuActions)
+    {
+        if ((sNumStartMenuActions & 1) && sStartMenuCursorPos == sNumStartMenuActions - 1)
+            newPos = 0;
+        else
+            newPos = sStartMenuCursorPos % 2;
+    }
+
+    sStartMenuCursorPos = newPos;
+    DrawStartMenuGridCursor(oldPos, sStartMenuCursorPos);
+}
+
+static void MoveStartMenuGridCursorHorizontal(s8 delta)
+{
+    u8 oldPos = sStartMenuCursorPos;
+    s16 newPos = sStartMenuCursorPos + delta;
+
+    if (delta > 0)
+    {
+        if ((sStartMenuCursorPos % 2) == 0 && newPos < sNumStartMenuActions)
+            sStartMenuCursorPos = newPos;
+    }
+    else
+    {
+        if ((sStartMenuCursorPos % 2) == 1)
+            sStartMenuCursorPos = newPos;
+    }
+
+    if (oldPos != sStartMenuCursorPos)
+        DrawStartMenuGridCursor(oldPos, sStartMenuCursorPos);
 }
 
 static bool32 InitStartMenuStep(void)
@@ -543,7 +619,7 @@ static bool32 InitStartMenuStep(void)
             sInitStartMenuData[0]++;
         break;
     case 5:
-        sStartMenuCursorPos = InitMenuNormal(GetStartMenuWindowId(), FONT_NORMAL, 0, 9, 16, sNumStartMenuActions, sStartMenuCursorPos);
+        InitStartMenuGridCursor();
         CopyWindowToVram(GetStartMenuWindowId(), COPYWIN_MAP);
         return TRUE;
     }
@@ -630,13 +706,25 @@ static bool8 HandleStartMenuInput(void)
     if (JOY_NEW(DPAD_UP))
     {
         PlaySE(SE_SELECT);
-        sStartMenuCursorPos = Menu_MoveCursor(-1);
+        MoveStartMenuGridCursor(-2);
     }
 
     if (JOY_NEW(DPAD_DOWN))
     {
         PlaySE(SE_SELECT);
-        sStartMenuCursorPos = Menu_MoveCursor(1);
+        MoveStartMenuGridCursor(2);
+    }
+
+    if (JOY_NEW(DPAD_LEFT))
+    {
+        PlaySE(SE_SELECT);
+        MoveStartMenuGridCursorHorizontal(-1);
+    }
+
+    if (JOY_NEW(DPAD_RIGHT))
+    {
+        PlaySE(SE_SELECT);
+        MoveStartMenuGridCursorHorizontal(1);
     }
 
     if (JOY_NEW(A_BUTTON))
