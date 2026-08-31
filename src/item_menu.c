@@ -3278,8 +3278,8 @@ static void AddBagSortSubMenu(void)
     }
 
     StringExpandPlaceholders(gStringVar4, sText_SortItemsHow);
-    FillWindowPixelBuffer(1, PIXEL_FILL(0));
-    BagMenu_Print(1, 1, gStringVar4, 3, 1, 0, 0, 0, 0);
+    FillWindowPixelBuffer(WIN_DESCRIPTION, PIXEL_FILL(0));
+    BagMenu_Print(WIN_DESCRIPTION, FONT_NORMAL, gStringVar4, 3, 1, 0, 0, 0, COLORID_DESCRIPTION);
 
     if (gBagMenu->contextMenuNumItems == 2)
         PrintContextMenuItems(BagMenu_AddWindow(ITEMWIN_1x2));
