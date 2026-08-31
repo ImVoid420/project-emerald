@@ -2759,4 +2759,9 @@
 	.byte \fieldMove
 	.endm
 
+	@@ Unbound Start Menu
+	.macro initusm
+	callnative Usm_InitStartMenu
+	.endm
+
 	.equ SIDE_QUEST_1, 0

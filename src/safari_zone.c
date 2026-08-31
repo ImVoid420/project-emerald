@@ -63,6 +63,11 @@ void EnterSafariMode(void)
     sSafariZonePkblkUses = 0;
 }
 
+u16 GetSafariZoneStepCounter(void)
+{
+    return sSafariZoneStepCounter;
+}
+
 void ExitSafariMode(void)
 {
     TryPutSafariFanClubOnAir(sSafariZoneCaughtMons, sSafariZonePkblkUses);

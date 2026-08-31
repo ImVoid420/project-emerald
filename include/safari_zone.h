@@ -8,6 +8,7 @@ void SetSafariZoneFlag(void);
 void ResetSafariZoneFlag(void);
 
 void EnterSafariMode(void);
+u16 GetSafariZoneStepCounter(void);
 void ExitSafariMode(void);
 
 bool8 SafariZoneTakeStep(void);

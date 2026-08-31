@@ -1569,7 +1569,7 @@
 #define FLAG_SYS_USE_SURF                           (SYSTEM_FLAGS + 0xA9)
 #define FLAG_SYS_USE_ROCK_SMASH                     (SYSTEM_FLAGS + 0xAA)
 #define FLAG_SYS_USE_WATERFALL                      (SYSTEM_FLAGS + 0xAB)
-#define FLAG_UNUSED_0x90C                           (SYSTEM_FLAGS + 0xAC) // Unused Flag
+#define FLAG_SYS_BOX_LINK_GET                       (SYSTEM_FLAGS + 0xAC) // Abilita l'icona BOX nel menu Start (Box Portatile)
 #define FLAG_UNUSED_0x90D                           (SYSTEM_FLAGS + 0xAD) // Unused Flag
 #define FLAG_UNUSED_0x90E                           (SYSTEM_FLAGS + 0xAE) // Unused Flag
 #define FLAG_UNUSED_0x90F                           (SYSTEM_FLAGS + 0xAF) // Unused Flag
