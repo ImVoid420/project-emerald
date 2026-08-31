@@ -6,6 +6,35 @@
 
 ## Custom features aggiunte
 
+### Unbound Style Start Menu (in valutazione — branch `experiment/unbound-start-menu`)
+- Origine: feature branch "Miriam's Unbound Style Start Menu" (USM) di [miriamlefae/pokeemerald-expansion](https://github.com/miriamlefae/pokeemerald-expansion/tree/feat/usm/upcoming), stessa base pokeemerald-expansion. Crediti: Hedara (funzioni sprite in `even_sprite.c`), Vol (icone originali), Brendan (test/fix, icone Debug e Safari Zone).
+- **Non è ancora su `master`**: vive sul branch locale `experiment/unbound-start-menu`, creato per valutarla senza toccare il lavoro già fatto sulla barra orizzontale in `src/start_menu.c` (i due sistemi non si toccano a livello di codice: la USM è tutta in file nuovi).
+- File principali: `src/unbound_start_menu.c`, `include/unbound_start_menu.h`, `include/constants/unbound_start_menu.h`, `src/even_sprite.c` (utility sprite), `src/save_dialog.c` (schermata di salvataggio custom)
+- Hook di collegamento (piccole modifiche a file esistenti, non conflittuali con `start_menu.c`):
+  - `src/field_control_avatar.c` — le due chiamate a `ShowStartMenu()` sostituite con `Usm_InitStartMenu()`
+  - `src/overworld.c` — `CB2_ReturnToFieldWithOpenMenu` usa `FieldCB_UsmReturnToField` invece di `FieldCB_ReturnToFieldOpenStartMenu`
+  - `include/global.h` — nuovo `struct Usm_SavedItems usmSaved` in `SaveBlock3` (per l'ordine icone personalizzato salvato dal giocatore)
+  - `include/util.h` — macro generica `Swap(a, b)`
+  - `asm/macros/event.inc` / `data/scripts/safari_zone.inc` — macro script `initusm` per riaprire il menu dopo essere usciti dalla Safari Zone
+
+#### Come cambiare i colori (richiesta esplicita: personalizzarla senza rifare la grafica da zero)
+Tutti i colori sono in palette `.pal` formato JASC-PAL (testo semplice, editabile anche a mano o con GIMP/qualsiasi editor di palette):
+
+| File | Cosa colora |
+|---|---|
+| `graphics/unbound_start_menu/bg/14.pal` | Sfondo della barra/menu (16 colori) |
+| `graphics/unbound_start_menu/sprites/icons.pal` | Icone delle voci di menu nello stato normale/non selezionato |
+| `graphics/unbound_start_menu/sprites/active.pal` | Icone nello stato selezionato/attivo (17 colori, leggermente diversa in struttura da icons.pal) |
+
+Per cambiare le singole icone invece dei colori: i PNG sorgente sono in `graphics/unbound_start_menu/sprites/*.png` (uno per voce: `bag.png`, `save.png`, `party.png`, `pokedex.png`, `pokenav.png`, `retire.png`, `debug.png`, `dexnav.png`, `options.png`, `trainer.png`, più `arrow.png`/`hand.png` per il cursore) e i tre file decorativi in `graphics/unbound_start_menu/` (`ball.png`, `floor.png`, `step.png`).
+
+A differenza della grafica dello zaino (vedi sezione BetterBag più sotto), **qui non serve il `touch src/graphics.c`**: `src/unbound_start_menu.c` fa `INCBIN` direttamente dei file compilati (`.4bpp.smol`/`.gbapal`/`.smolTM`) generati automaticamente dal sistema di build a partire dai `.png`/`.pal` sorgente — basta modificare il sorgente e rilanciare `make`.
+
+#### Compatibilità e cose da verificare prima di promuoverla su `master`
+- Il vecchio `src/start_menu.c` con la barra orizzontale diventa codice morto per l'apertura del menu (i call site sono stati rediretti), ma resta nel repo: da decidere se rimuoverlo o tenerlo come fallback/riferimento.
+- Non ancora testato in ROM su questo fork (solo compilato) — verificare Day/Night, buio della torcia, e riordino icone come da feature list originale.
+- `struct Usm_SavedItems` aggiunge byte a `SaveBlock3`: se compare un errore di build tipo "size of array ... is negative", è overflow del save block (stesso tipo di problema gestito altrove per SaveBlock2, vedi sezione "SaveBlock2 overflow" più sotto).
+
 ### Quest Menu
 - Implementato seguendo la guida: https://github.com/PokemonSanFran/pokeemerald/wiki/Unbound-Quest-Menu
 - File principali: `src/quest_menu.c`, `include/quest_menu.h`, `src/quests.c`, `include/quests.h`, `include/constants/quests.h`
@@ -374,19 +403,20 @@ I tile di lava usano il comportamento `MB_LAVA`. Premendo A verso un tile `MB_LA
 #### Come usare in Porymap
 Assegna il comportamento `MB_LAVA` ai tile di lava nella mappa. Il tile deve avere elevation 3 (come l'acqua) per far funzionare correttamente il sistema di collisione surf.
 
-#### ⚠️ BUG DESIGN — da rifare prima di testare
-L'implementazione attuale richiede un Pokémon Fuoco che conosca Surf (`PartyHasFireMonWithSurf`), ma i Pokémon Fuoco non imparano Surf naturalmente → la feature è inutilizzabile.
+#### ✅ Fix già applicato (verificato nel codice)
+Il bug descritto in versioni precedenti di questa nota è **già risolto**:
+- `GetInteractedWaterScript` in `src/field_control_avatar.c:571` usa
+  `IsFieldMoveUnlocked(FIELD_MOVE_SURF) && IsPlayerFacingLava() && PartyHasLavaResistantMon()`
+  — non richiede più che il Pokémon Fuoco conosca Surf.
+- `PartyHasLavaResistantMon()` (`src/field_player_avatar.c:1590`) controlla solo il
+  tipo Fuoco, non la mossa.
+- `FldEff_SurfBlob` in `src/field_effect_helpers.c:1195` sceglie lo sprite in base
+  al tile: su `MB_LAVA` mostra il primo Pokémon Fuoco vivo, sull'acqua normale il
+  primo Pokémon vivo che conosce Surf.
 
-**Design corretto da implementare:**
-1. Condizione attivazione: `IsFieldMoveUnlocked(FIELD_MOVE_SURF)` + `PartyHasLavaResistantMon()` (tipo Fuoco in squadra, senza richiedere la mossa Surf)
-2. Sprite mostrato: primo Pokémon di tipo adatto in squadra (non il Surf-user)
-
-**Modifiche necessarie:**
-- `PartyHasFireMonWithSurf()` → sostituire con `PartyHasLavaResistantMon()` che controlla solo il tipo (Fuoco, eventualmente anche Roccia/Terra), non la mossa
-- `GetInteractedWaterScript` in `src/field_control_avatar.c`: usare `IsFieldMoveUnlocked(FIELD_MOVE_SURF) && IsPlayerFacingLava() && PartyHasLavaResistantMon()`
-- `FldEff_SurfBlob` in `src/field_effect_helpers.c`: quando il giocatore è su tile `MB_LAVA`, cercare il primo Pokémon lava-resistente invece del Surf-user per lo sprite
-
-**Nota sprite surf su lava:** attualmente `FldEff_SurfBlob` mostra il primo Pokémon con Surf, quindi sull'acqua e sulla lava verrebbe mostrato lo stesso Pokémon. Con il fix, sulla lava verrà mostrato il Pokémon Fuoco.
+Restano aperti solo gli item `TODO.md` M1.10 (test end-to-end su tile reali),
+M1.11 (messaggio dedicato quando mancano i requisiti) e M1.12 (valutare se
+estendere la resistenza lava a Roccia/Terra).
 
 **Nota sprite sovrapposti:** alcuni Pokémon alti (es. Goodra) si sovrappongono bruttamente al personaggio perché `UpdateBobbingEffect` posiziona lo sprite con `y = playerSprite->y + 8`, pensato per sprite bassi/piatti. Kyogre e simili funzionano bene. Fix futuro: usare `graphicsInfo->height` per calcolare un offset y dinamico.
 
