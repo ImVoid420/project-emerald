@@ -2913,8 +2913,9 @@ static void SetPartyMonFieldSelectionActions(struct Pokemon *mons, u8 slotId)
     sPartyMenuInternal->numActions = 0;
     AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_SUMMARY);
 
-    if (P_PARTY_MOVE_RELEARNER 
-     && FlagGet(FLAG_SYS_MOVE_TUTOR_ENABLED) // La feature deve essere attiva via flag
+    if (P_PARTY_MOVE_RELEARNER
+     // TEMP: sempre attivo per ora (nessuna storia ancora scritta per sbloccarlo).
+     // Per renderlo sbloccabile via storia, ripristinare: FlagGet(FLAG_SYS_MOVE_TUTOR_ENABLED) &&
      && (GetMonData(&mons[slotId], MON_DATA_SPECIES)
      && (HasRelearnerLevelUpMoves(&mons[slotId]) || HasRelearnerEggMoves(&mons[slotId])
      || HasRelearnerTMMoves(&mons[slotId]) || HasRelearnerTutorMoves(&mons[slotId]))))
