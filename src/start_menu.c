@@ -18,6 +18,7 @@
 #include "frontier_util.h"
 #include "gpu_regs.h"
 #include "international_string_util.h"
+#include "item_icon.h"
 #include "item_menu.h"
 #include "link.h"
 #include "load_save.h"
@@ -35,6 +36,7 @@
 #include "save.h"
 #include "scanline_effect.h"
 #include "script.h"
+#include "script_menu.h"
 #include "sound.h"
 #include "start_menu.h"
 #include "strings.h"
@@ -48,6 +50,7 @@
 #include "dexnav.h"
 #include "wild_encounter.h"
 #include "constants/battle_frontier.h"
+#include "constants/items.h"
 #include "constants/rgb.h"
 #include "constants/songs.h"
 #include "constants/rgb.h"
@@ -91,6 +94,11 @@ EWRAM_DATA static u8 sBattlePyramidFloorWindowId = 0;
 EWRAM_DATA static u8 sStartMenuCursorPos = 0;
 EWRAM_DATA static u8 sNumStartMenuActions = 0;
 EWRAM_DATA static u8 sCurrentStartMenuActions[10] = {0};
+EWRAM_DATA static u8 sStartMenuIconSpriteIds[6] = {0};
+EWRAM_DATA static u8 sStartMenuIconOffset = 0;
+EWRAM_DATA static u8 sStartMenuNameWindowId = 0;
+EWRAM_DATA static u8 sStartMenuCursorPulseTimer = 0;
+EWRAM_DATA static bool8 sStartMenuCursorPulseUp = FALSE;
 EWRAM_DATA static s8 sInitStartMenuData[2] = {0};
 
 EWRAM_DATA static u8 (*sSaveDialogCallback)(void) = NULL;
@@ -192,6 +200,15 @@ static const struct WindowTemplate sWindowTemplate_PyramidPeak = {
 
 static const u8 sText_MenuDebug[] = _("DEBUG");
 
+#define START_MENU_ICON_COUNT 6
+#define START_MENU_ICON_TAG 0x5350
+#define START_MENU_ICON_X 20
+#define START_MENU_ICON_Y 136
+#define START_MENU_ICON_SPACING 36
+#define START_MENU_NAME_WINDOW_BASE_BLOCK 0x1C5
+#define START_MENU_NAME_WINDOW_MIN_WIDTH 6
+#define START_MENU_NAME_WINDOW_MAX_WIDTH 10
+
 static const struct MenuAction sStartMenuItems[] =
 {
     [MENU_ACTION_POKEDEX]         = {gText_MenuPokedex, {.u8_void = StartMenuPokedexCallback}},
@@ -269,8 +286,13 @@ static void InitStartMenu(void);
 static void CreateStartMenuTask(TaskFunc followupFunc);
 static void InitStartMenuGridCursor(void);
 static void MoveStartMenuGridCursor(s8 delta);
-static void MoveStartMenuGridCursorHorizontal(s8 delta);
-static void DrawStartMenuGridCursor(u8 oldPos, u8 newPos);
+static void DrawStartMenuCursor(void);
+static void UpdateStartMenuCursorPulse(void);
+static void CreateStartMenuIconSprites(void);
+static void DestroyStartMenuIconSprites(void);
+static void DrawStartMenuNameWindow(void);
+static void RemoveStartMenuNameWindow(void);
+static u16 GetStartMenuActionIcon(u8 action);
 static void InitSave(void);
 static u8 RunSaveCallback(void);
 static void ShowSaveMessage(const u8 *message, u8 (*saveCallback)(void));
@@ -474,6 +496,9 @@ static void ShowPyramidFloorWindow(void)
 
 static void RemoveExtraStartMenuWindows(void)
 {
+    DestroyStartMenuIconSprites();
+    RemoveStartMenuNameWindow();
+
     if (GetSafariZoneFlag())
     {
         ClearStdWindowAndFrameToTransparent(sSafariBallsWindowId, FALSE);
@@ -489,103 +514,192 @@ static void RemoveExtraStartMenuWindows(void)
 
 static bool32 PrintStartMenuActions(s8 *pIndex, u32 count)
 {
-    s8 index = *pIndex;
-    u8 x, y;
+    (void)count;
 
-    do
-    {
-        x = ((index % 2) * 56) + 8;
-        y = ((index / 2) << 4) + 9;
-
-        if (sStartMenuItems[sCurrentStartMenuActions[index]].func.u8_void == StartMenuPlayerNameCallback)
-        {
-            PrintPlayerNameOnWindow(GetStartMenuWindowId(), sStartMenuItems[sCurrentStartMenuActions[index]].text, x, y);
-        }
-        else
-        {
-            StringExpandPlaceholders(gStringVar4, sStartMenuItems[sCurrentStartMenuActions[index]].text);
-            AddTextPrinterParameterized(GetStartMenuWindowId(), FONT_NORMAL, gStringVar4, x, y, TEXT_SKIP_DRAW, NULL);
-        }
-
-        index++;
-        if (index >= sNumStartMenuActions)
-        {
-            *pIndex = index;
-            return TRUE;
-        }
-
-        count--;
-    }
-    while (count != 0);
-
-    *pIndex = index;
-    return FALSE;
+    *pIndex = sNumStartMenuActions;
+    return TRUE;
 }
 
-static void DrawStartMenuGridCursor(u8 oldPos, u8 newPos)
+static u16 GetStartMenuActionIcon(u8 action)
 {
-    u8 oldX = (oldPos % 2) * 56;
-    u8 oldY = ((oldPos / 2) << 4) + 9;
-    u8 newX = (newPos % 2) * 56;
-    u8 newY = ((newPos / 2) << 4) + 9;
+    switch (action)
+    {
+    case MENU_ACTION_POKEDEX:
+        return ITEM_TOWN_MAP;
+    case MENU_ACTION_POKEMON:
+        return ITEM_POKE_BALL;
+    case MENU_ACTION_PLAYER:
+    case MENU_ACTION_PLAYER_LINK:
+        return ITEM_RED_CARD;
+    case MENU_ACTION_BAG:
+    case MENU_ACTION_PYRAMID_BAG:
+        return ITEM_POTION;
+    case MENU_ACTION_QUESTS:
+        return ITEM_DEVON_SCOPE;
+    case MENU_ACTION_DEXNAV:
+        return ITEM_POKE_RADAR;
+    case MENU_ACTION_POKENAV:
+        return ITEM_SCANNER;
+    case MENU_ACTION_SAVE:
+    case MENU_ACTION_REST_FRONTIER:
+        return ITEM_TM_CASE;
+    case MENU_ACTION_OPTION:
+        return ITEM_DOWSING_MACHINE;
+    case MENU_ACTION_EXIT:
+    case MENU_ACTION_RETIRE_SAFARI:
+    case MENU_ACTION_RETIRE_FRONTIER:
+        return ITEM_ESCAPE_ROPE;
+    case MENU_ACTION_DEBUG:
+    default:
+        return ITEM_DEVON_GOODS;
+    }
+}
 
-    FillWindowPixelRect(GetStartMenuWindowId(), PIXEL_FILL(1), oldX, oldY, 8, 16);
-    AddTextPrinterParameterized(GetStartMenuWindowId(), FONT_NORMAL, gText_SelectorArrow3, newX, newY, 0, 0);
-    CopyWindowToVram(GetStartMenuWindowId(), COPYWIN_GFX);
+static void DestroyStartMenuIconSprites(void)
+{
+    u8 i;
+
+    for (i = 0; i < START_MENU_ICON_COUNT; i++)
+    {
+        if (sStartMenuIconSpriteIds[i] != MAX_SPRITES)
+            DestroySprite(&gSprites[sStartMenuIconSpriteIds[i]]);
+        FreeSpriteTilesByTag(START_MENU_ICON_TAG + i);
+        FreeSpritePaletteByTag(START_MENU_ICON_TAG + i);
+        sStartMenuIconSpriteIds[i] = MAX_SPRITES;
+    }
 }
 
 static void InitStartMenuGridCursor(void)
 {
+    u8 i;
+
     if (sStartMenuCursorPos >= sNumStartMenuActions)
         sStartMenuCursorPos = 0;
+    sStartMenuIconOffset = 0;
+    sStartMenuNameWindowId = WINDOW_NONE;
+    sStartMenuCursorPulseTimer = 0;
+    sStartMenuCursorPulseUp = FALSE;
 
-    DrawStartMenuGridCursor(sStartMenuCursorPos, sStartMenuCursorPos);
+    for (i = 0; i < START_MENU_ICON_COUNT; i++)
+        sStartMenuIconSpriteIds[i] = MAX_SPRITES;
+
+    DrawStartMenuNameWindow();
+    CreateStartMenuIconSprites();
+    DrawStartMenuCursor();
 }
 
 static void MoveStartMenuGridCursor(s8 delta)
 {
-    u8 oldPos = sStartMenuCursorPos;
     s16 newPos = sStartMenuCursorPos + delta;
 
     if (newPos < 0)
-    {
-        if ((sNumStartMenuActions & 1) && sStartMenuCursorPos == 0)
-            newPos = sNumStartMenuActions - 1;
-        else if (sNumStartMenuActions & 1)
-            newPos = sNumStartMenuActions - 2;
-        else
-            newPos = sNumStartMenuActions - 2 + sStartMenuCursorPos;
-    }
+        newPos = sNumStartMenuActions - 1;
     else if (newPos >= sNumStartMenuActions)
-    {
-        if ((sNumStartMenuActions & 1) && sStartMenuCursorPos == sNumStartMenuActions - 1)
-            newPos = 0;
-        else
-            newPos = sStartMenuCursorPos % 2;
-    }
+        newPos = 0;
 
     sStartMenuCursorPos = newPos;
-    DrawStartMenuGridCursor(oldPos, sStartMenuCursorPos);
+    DrawStartMenuNameWindow();
+    CreateStartMenuIconSprites();
+    DrawStartMenuCursor();
 }
 
-static void MoveStartMenuGridCursorHorizontal(s8 delta)
+static void CreateStartMenuIconSprites(void)
 {
-    u8 oldPos = sStartMenuCursorPos;
-    s16 newPos = sStartMenuCursorPos + delta;
+    u8 i;
+    u8 visibleCount;
 
-    if (delta > 0)
+    if (sStartMenuCursorPos < sStartMenuIconOffset)
+        sStartMenuIconOffset = sStartMenuCursorPos;
+    else if (sStartMenuCursorPos >= sStartMenuIconOffset + START_MENU_ICON_COUNT)
+        sStartMenuIconOffset = sStartMenuCursorPos - START_MENU_ICON_COUNT + 1;
+
+    DestroyStartMenuIconSprites();
+    visibleCount = min(START_MENU_ICON_COUNT, sNumStartMenuActions - sStartMenuIconOffset);
+
+    for (i = 0; i < visibleCount; i++)
     {
-        if ((sStartMenuCursorPos % 2) == 0 && newPos < sNumStartMenuActions)
-            sStartMenuCursorPos = newPos;
+        u8 action = sCurrentStartMenuActions[sStartMenuIconOffset + i];
+        u8 spriteId = AddItemIconSprite(START_MENU_ICON_TAG + i, START_MENU_ICON_TAG + i, GetStartMenuActionIcon(action));
+
+        if (spriteId != MAX_SPRITES)
+        {
+            sStartMenuIconSpriteIds[i] = spriteId;
+            gSprites[spriteId].x2 = START_MENU_ICON_X + (i * START_MENU_ICON_SPACING);
+            gSprites[spriteId].y2 = START_MENU_ICON_Y;
+            gSprites[spriteId].oam.priority = 0;
+        }
     }
+}
+
+static void DrawStartMenuCursor(void)
+{
+    u8 spriteId;
+    u8 i;
+
+    for (i = 0; i < START_MENU_ICON_COUNT; i++)
+    {
+        spriteId = sStartMenuIconSpriteIds[i];
+        if (spriteId != MAX_SPRITES)
+            gSprites[spriteId].y2 = START_MENU_ICON_Y;
+    }
+
+    if (sStartMenuCursorPos >= sStartMenuIconOffset
+     && sStartMenuCursorPos < sStartMenuIconOffset + START_MENU_ICON_COUNT)
+    {
+        spriteId = sStartMenuIconSpriteIds[sStartMenuCursorPos - sStartMenuIconOffset];
+        if (spriteId != MAX_SPRITES)
+            gSprites[spriteId].y2 = START_MENU_ICON_Y - (sStartMenuCursorPulseUp ? 2 : 0);
+    }
+}
+
+static void UpdateStartMenuCursorPulse(void)
+{
+    sStartMenuCursorPulseTimer++;
+    if (sStartMenuCursorPulseTimer & 16)
+        sStartMenuCursorPulseUp = TRUE;
     else
-    {
-        if ((sStartMenuCursorPos % 2) == 1)
-            sStartMenuCursorPos = newPos;
-    }
+        sStartMenuCursorPulseUp = FALSE;
 
-    if (oldPos != sStartMenuCursorPos)
-        DrawStartMenuGridCursor(oldPos, sStartMenuCursorPos);
+    DrawStartMenuCursor();
+}
+
+static void DrawStartMenuNameWindow(void)
+{
+    const u8 *text = sStartMenuItems[sCurrentStartMenuActions[sStartMenuCursorPos]].text;
+    u8 x, width;
+
+    StringExpandPlaceholders(gStringVar4, text);
+
+    width = ConvertPixelWidthToTileWidth(GetStringWidth(FONT_NORMAL, gStringVar4, -1)) + 2;
+    if (width < START_MENU_NAME_WINDOW_MIN_WIDTH)
+        width = START_MENU_NAME_WINDOW_MIN_WIDTH;
+    else if (width > START_MENU_NAME_WINDOW_MAX_WIDTH)
+        width = START_MENU_NAME_WINDOW_MAX_WIDTH;
+
+    if (sStartMenuNameWindowId != WINDOW_NONE && gWindows[sStartMenuNameWindowId].window.width != width)
+        RemoveStartMenuNameWindow();
+
+    if (sStartMenuNameWindowId == WINDOW_NONE)
+        sStartMenuNameWindowId = AddWindowParameterized(0, 1, 10, width, 2, 15, START_MENU_NAME_WINDOW_BASE_BLOCK);
+
+    // Full self-contained standard frame, no manual "welded tab" toward the bar below:
+    // the bar's own top border sits on tilemap row 13, and this namebox's top=10/height=2
+    // puts its bottom border on row 12, so the two frames no longer fight over the same row.
+    DrawStdWindowFrame(sStartMenuNameWindowId, FALSE);
+    x = GetStringCenterAlignXOffset(FONT_NORMAL, gStringVar4, width * 8);
+    AddTextPrinterParameterized(sStartMenuNameWindowId, FONT_NORMAL, gStringVar4, x, 1, TEXT_SKIP_DRAW, NULL);
+    CopyWindowToVram(sStartMenuNameWindowId, COPYWIN_FULL);
+    CopyBgTilemapBufferToVram(0);
+}
+
+static void RemoveStartMenuNameWindow(void)
+{
+    if (sStartMenuNameWindowId != WINDOW_NONE)
+    {
+        ClearStdWindowAndFrame(sStartMenuNameWindowId, TRUE);
+        RemoveWindow(sStartMenuNameWindowId);
+        sStartMenuNameWindowId = WINDOW_NONE;
+    }
 }
 
 static bool32 InitStartMenuStep(void)
@@ -619,8 +733,8 @@ static bool32 InitStartMenuStep(void)
             sInitStartMenuData[0]++;
         break;
     case 5:
+        CopyWindowToVram(GetStartMenuWindowId(), COPYWIN_FULL);
         InitStartMenuGridCursor();
-        CopyWindowToVram(GetStartMenuWindowId(), COPYWIN_MAP);
         return TRUE;
     }
 
@@ -703,28 +817,28 @@ void ShowStartMenu(void)
 
 static bool8 HandleStartMenuInput(void)
 {
+    UpdateStartMenuCursorPulse();
+
     if (JOY_NEW(DPAD_UP))
     {
-        PlaySE(SE_SELECT);
-        MoveStartMenuGridCursor(-2);
+        return FALSE;
     }
 
     if (JOY_NEW(DPAD_DOWN))
     {
-        PlaySE(SE_SELECT);
-        MoveStartMenuGridCursor(2);
+        return FALSE;
     }
 
     if (JOY_NEW(DPAD_LEFT))
     {
         PlaySE(SE_SELECT);
-        MoveStartMenuGridCursorHorizontal(-1);
+        MoveStartMenuGridCursor(-1);
     }
 
     if (JOY_NEW(DPAD_RIGHT))
     {
         PlaySE(SE_SELECT);
-        MoveStartMenuGridCursorHorizontal(1);
+        MoveStartMenuGridCursor(1);
     }
 
     if (JOY_NEW(A_BUTTON))
@@ -1568,6 +1682,8 @@ void SaveForBattleTowerLink(void)
 
 static void HideStartMenuWindow(void)
 {
+    DestroyStartMenuIconSprites();
+    RemoveStartMenuNameWindow();
     ClearStdWindowAndFrame(GetStartMenuWindowId(), TRUE);
     RemoveStartMenuWindow();
     ScriptUnfreezeObjectEvents();

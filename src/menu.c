@@ -620,10 +620,10 @@ void DisplayYesNoMenuWithDefault(u8 initialCursorPos)
 
 u8 AddStartMenuWindow(u8 numActions)
 {
-    u8 numRows = (numActions + 1) / 2;
+    (void)numActions;
 
     if (sStartMenuWindowId == WINDOW_NONE)
-        sStartMenuWindowId = AddWindowParameterized(0, 15, 1, 14, (numRows * 2) + 2, 15, 0x139);
+        sStartMenuWindowId = AddWindowParameterized(0, 1, 14, 28, 5, 15, 0x139);
     return sStartMenuWindowId;
 }
 
