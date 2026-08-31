@@ -844,6 +844,18 @@ static void PlayerNotOnBikeMoving(u8 direction, u16 heldKeys)
         return;
     }
 
+    // Controllare la ricerca DexNav PRIMA dell'autorun: altrimenti col
+    // solo tasto A l'autorun scatta comunque (return anticipato sotto) e
+    // per entrare in modalita' "creeping" serve tenere premuto anche B,
+    // che non dovrebbe essere necessario.
+    if (FlagGet(DN_FLAG_SEARCHING) && (heldKeys & A_BUTTON))
+    {
+        gPlayerAvatar.creeping = TRUE;
+        gPlayerAvatar.flags &= ~PLAYER_AVATAR_FLAG_DASH;
+        PlayerWalkSlow(direction);
+        return;
+    }
+
    if (!(gPlayerAvatar.flags & PLAYER_AVATAR_FLAG_UNDERWATER)
         && FlagGet(FLAG_SYS_B_DASH)
         && IsRunningDisallowed(gObjectEvents[gPlayerAvatar.objectEventId].currentMetatileBehavior) == 0
@@ -864,13 +876,6 @@ static void PlayerNotOnBikeMoving(u8 direction, u16 heldKeys)
         // Se premiamo B, usciamo da questo if e finiremo nell'else in fondo (camminata)
     }
 
-    if (FlagGet(DN_FLAG_SEARCHING) && (heldKeys & A_BUTTON))
-    {
-        gPlayerAvatar.creeping = TRUE;
-        gPlayerAvatar.flags &= ~PLAYER_AVATAR_FLAG_DASH;
-        PlayerWalkSlow(direction);
-    }
-    else
     {
         // Qui gestiamo la camminata normale (se B è premuto o se non abbiamo le scarpe)
         gPlayerAvatar.flags &= ~PLAYER_AVATAR_FLAG_DASH;
